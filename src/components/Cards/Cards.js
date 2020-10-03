@@ -133,9 +133,20 @@ class Cards extends React.Component {
   render() {
     return (
       <div className={"Card"}>
-        
+         <div className = {"Title"}>Cards</div>
+         <div className = {"Panel"}>
+         <div className = {"LeftPanel"}>
+          
+        <h1>Tournaments starting in January!</h1>
+        </div>
         <div className = {"ScrollBox"}>
           {this.displayCards()}
+        </div>
+        <div className = {"RightPanel"}>
+        <h1>Tournaments starting in January</h1>
+        </div>
+      
+       
         </div>
       </div>
     );

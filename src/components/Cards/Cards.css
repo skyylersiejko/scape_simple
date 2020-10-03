@@ -32,6 +32,24 @@
 
   
 }
+
+.Panel{
+  display:flex;
+  flex-direction: row;
+}
+
+.LeftPanel,.RightPanel{
+  display:flex;
+  flex-direction: column;
+}
+
+.LeftPanel{
+
+}
+
+.RightPanel{
+
+}
 .CardBtn{
   color: rgba(214, 195, 73);
   background-color: rgba(61, 61, 61, 0.75);

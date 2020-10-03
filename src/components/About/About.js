@@ -102,6 +102,7 @@ class About extends React.Component {
         <div className={"Info_Title"}>How to Play</div>
         {this.displayVocab()}
         <div className={"Scroll"}>{this.displayRules()}</div>
+        
       </div>
     );
   }
