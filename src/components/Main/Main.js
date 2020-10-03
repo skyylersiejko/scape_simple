@@ -2,8 +2,8 @@ import React from "react";
 import "./Main.css";
 import Logo from "../../res/Scape_logo.png";
 import About from "../About/About";
-import Cards from "../Cards/Cards";
-import CardData from '../../CardData';
+import Panel from "../../hoc/Panel/Panel";
+
 
 
 class Main extends React.Component {
@@ -16,12 +16,12 @@ class Main extends React.Component {
     return (
       <div className={"Main"}>
         <div className={"Banner"}>
-          <div className={"Title"}>
+          <div className={"Main_Title"}>
             <img alt={"scape_logo"} src={Logo} />
           </div>
         </div>
         <About />
-        <Cards cards = {CardData}  />
+       <Panel/>
       </div>
     );
   }

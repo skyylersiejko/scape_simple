@@ -1,7 +1,8 @@
 import React from "react";
 import "./Cards.css";
 import error_Image from '../../res/scape_back_logo.png'
-import { collapseTextChangeRangesAcrossMultipleVersions } from "typescript";
+import Media from '../Media/Media';
+import CardData from '../../CardData';
 
 class Cards extends React.Component {
   constructor(props) {
@@ -13,10 +14,11 @@ class Cards extends React.Component {
 
   displayCards() {
    
-      if (this.props.cards) {
+      if (CardData) {
         return (
           <div className={"Card_Slider"}>
-            {Object.values(this.props.cards).map((card) => {
+            <div className = {"Card_Title"}>Cards</div>
+            {Object.values(CardData).map((card) => {
               return (
                 <React.Fragment >
                   <div className = {"Card_Container"}>
@@ -133,22 +135,15 @@ class Cards extends React.Component {
   render() {
     return (
       <div className={"Card"}>
-         <div className = {"Title"}>Cards</div>
-         <div className = {"Panel"}>
-         <div className = {"LeftPanel"}>
-          
-        <h1>Tournaments starting in January!</h1>
-        </div>
+         <div className = {"Title"}>Resources</div>
         <div className = {"ScrollBox"}>
           {this.displayCards()}
         </div>
-        <div className = {"RightPanel"}>
-        <h1>Tournaments starting in January</h1>
-        </div>
+        
       
        
         </div>
-      </div>
+   
     );
   }
 }

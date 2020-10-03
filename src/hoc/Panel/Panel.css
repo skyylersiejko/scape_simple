@@ -1,0 +1,18 @@
+.Panel{
+    display:flex;
+    flex-direction: row;
+  }
+  
+  .LeftPanel,.RightPanel{
+    display:flex;
+    flex-direction: column;
+    padding:25px;
+  }
+  
+  .LeftPanel{
+  
+  }
+  
+  .RightPanel{
+  
+  }

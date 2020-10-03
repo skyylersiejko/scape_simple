@@ -4,7 +4,6 @@
   animation-duration: 1s;
   display:flex;
   flex-direction: column;
-  width: 100%;
   justify-content: center ;
 
 }
@@ -28,28 +27,12 @@
   justify-content: center;
   word-wrap: break-word;
   margin:auto;
-  PADDING:20PX;
+
 
   
 }
 
-.Panel{
-  display:flex;
-  flex-direction: row;
-}
 
-.LeftPanel,.RightPanel{
-  display:flex;
-  flex-direction: column;
-}
-
-.LeftPanel{
-
-}
-
-.RightPanel{
-
-}
 .CardBtn{
   color: rgba(214, 195, 73);
   background-color: rgba(61, 61, 61, 0.75);
@@ -60,11 +43,20 @@
 
 }
 
+img{
+max-width:400px;
+max-height:400px;
+}
 
-.Title {
+
+.Card_Title {
   color: white;
   font-size: 40px;
   font-family: "Varela Round", sans-serif;
+  background-color: rgba(61, 61, 61, 0.5);
+  text-align:center;
+ 
+  
 }
 
 .Card_Data, .Card_Ancient, .Card_Spell, .Card_Landscape{
@@ -73,11 +65,10 @@
   justify-content: center;
   flex-direction:row;
   box-shadow: 0px 3px 3 px black;
-  border-radius: 10px ;
-  margin:auto;
+  border-radius: 5px ;
   border:2px solid rgba(61, 61, 61, 0.75);  
   font-family: "Varela Round", sans-serif;
-  padding: 25px;
+  margin:auto;
   max-width: 800px;    
 
 
@@ -124,8 +115,7 @@ h1{
 
 
 .Card_Container{
-  display:flex;
-  margin:auto;
+  
   padding:10px;
 
 }
@@ -161,4 +151,100 @@ h1{
 .ScrollBox::-webkit-scrollbar-thumb {
   background-color: rgba(95, 86, 86, 0.7);
   outline: 1px solid black;
+}
+
+
+
+/*MEDIA===========================*/
+/*IPhone-X*/
+@media only screen 
+and (min-device-width : 375px) 
+and (max-device-width : 812px)
+and (-webkit-device-pixel-ratio : 3) { 
+
+  
+.ScrollBox {
+  background-color: black;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 580px;
+  border-radius: 10px;
+}
+
+
+
+.ScrollBox::-webkit-scrollbar {
+  width: 1em;
+  background-color: rgba(61, 61, 61, 0.5);
+}
+
+.ScrollBox::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.ScrollBox::-webkit-scrollbar-thumb {
+  background-color: rgba(95, 86, 86, 0.7);
+  outline: 1px solid black;
+}
+
+  .SubBox{
+    display:flex;
+    flex-direction: column; 
+    justify-content: center;
+    background-color: rgba(61, 61, 61, 0.5);
+    text-align: center;
+    border-radius: 10px;
+    padding: 10px;
+   
+  }
+
+
+  
+
+  .Card_Data, .Card_Ancient, .Card_Spell, .Card_Landscape{
+   
+    display: flex;
+    justify-content: center;
+    flex-direction:row;
+    box-shadow: 0px 3px 3 px black;
+    border-radius: 5px ;
+    border:2px solid rgba(61, 61, 61, 0.75);  
+    font-family: "Varela Round", sans-serif;
+    margin:auto;
+        
+  
+  
+  }
+
+  .Card_Ancient{
+    background-color:rgba(103, 58, 183, 0.5);
+   
+    
+  
+  
+  }
+  
+  
+  .Card_Spell{
+    background-color: rgb(9, 132, 227, 0.5  );
+  
+  
+  
+  
+  }
+  
+  
+  .Card_Landscape{
+    background-color:rgba(139, 195, 74, 0.5);
+  
+  }
+  
+  
+  .Card_Container{
+    
+    padding:10px;
+  
+  }
+
+
 }

@@ -10,7 +10,11 @@
   "dependencies": {
     "react": "16.13.1",
     "react-dom": "16.13.1",
-    "react-scripts": "3.4.3"
+    "react-player": "^2.6.2",
+    "react-scripts": "3.4.3",
+    "react-video": "^1.5.3",
+    "react-youtube": "^7.12.0",
+    "video-react": "^0.14.1"
   },
   "devDependencies": {
     "typescript": "3.8.3"
