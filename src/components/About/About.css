@@ -1,0 +1,72 @@
+.About {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /**background-color: rgba(59, 57, 57, 0.75);**/
+  border-radius: 5px;
+
+  margin-top: 3%;
+  color: rgba(214, 195, 73);
+  font-family: "Varela Round", sans-serif;
+}
+
+.VocabBtn {
+  color: rgba(214, 195, 73);
+  background-color: rgba(61, 61, 61, 0.75);
+}
+.Termonology {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.Info_Title {
+  text-align: center;
+  padding: 20px;
+  font-size: 40px;
+  color: white;
+}
+
+.Text {
+  font-size: 16px;
+  padding: 25px;
+  line-height: 25px;
+  display: flex;
+  justify-content: center;
+  font-style: bold;
+  text-align: center;
+}
+
+.Scroll {
+  background-color: black;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 500px;
+  border-radius: 10px;
+}
+
+.Sub_Title {
+  color: white;
+  text-align: center;
+  background-color: rgba(61, 61, 61, 0.5);
+  height: 50px;
+  border-radius: 5px;
+}
+
+li {
+  padding: 5px;
+}
+
+.Scroll::-webkit-scrollbar {
+  width: 1em;
+  background-color: rgba(61, 61, 61, 0.5);
+}
+
+.Scroll::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.Scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(95, 86, 86, 0.7);
+  outline: 1px solid black;
+}
