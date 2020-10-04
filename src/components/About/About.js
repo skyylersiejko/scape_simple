@@ -21,6 +21,7 @@ class About extends React.Component {
     Object.values(rules).map((rule) => {
       return rules_text.push(
         <p>
+           
           {rule.map((child) => {
             return <li>{child}</li>;
           })}
@@ -50,11 +51,11 @@ class About extends React.Component {
             <li> Exhaust = "Tap"</li>
             <li> Harvested = "Sac or use"</li>
             <li>
-              Ritual = sequence of events that must occur to create an event
+              Ritual = sequence of actions that must occur to create an event
             </li>
             <li> Being = "creature"</li>
             <li> Ancient = "Commander"</li>
-            <li> WillPower (WP) = "life"</li>
+            <li> Will-Power (WP) = "life"</li>
             <li> Landscape = "basic land"</li>
             <li> Replenish = "untap and upkeep"</li>
             <li> Yard = "discard pile"</li>
@@ -68,7 +69,7 @@ class About extends React.Component {
             }}
             className={"VocabBtn"}
           >
-            {"Hide Termonology"}
+            {"Hide Terminology"}
           </button>
         </div>
       );
@@ -80,7 +81,7 @@ class About extends React.Component {
           }}
           className={"VocabBtn"}
         >
-          {"Show Termonology"}
+          {"Show Terminology"}
         </button>
       );
     }
@@ -95,13 +96,14 @@ class About extends React.Component {
           with a set-deck and more complex actions. Both Players start with the
           same deck (think Chess); its optimized for better game theory/play.
           Instead of the cards telling you what action to take, the player must
-          utilize their WillPower as a resource and cast spells to perform
+          utilize their Will-Power as a resource and cast spells to perform
           rituals that help build towards your victory. Scape is designed for
-          high competative ceiling with a low learning floor. With Five ways to
+          high competetive ceiling with a low learning floor. With Five ways to
           achieve victory, it is up to the player to decide their fate. Which
           Ancient will you choose to support?
         </div>
         <div className={"Info_Title"}>How to Play</div>
+        <div>(the rules assume you are familiar with Magic)</div> 
         {this.displayVocab()}
         <div className={"Scroll"}>{this.displayRules()}</div>
         

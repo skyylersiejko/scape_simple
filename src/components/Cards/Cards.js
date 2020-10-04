@@ -28,7 +28,7 @@ class Cards extends React.Component {
                     <div className = {"Mobile"}>
                       <h1>{card.type}</h1>
                 
-                      <img
+                      <img className = {"Card_Image"}
                         src={card.image}
                         onError={(e) => {
                           e.target.src = error_Image;
@@ -58,7 +58,7 @@ class Cards extends React.Component {
                         <div className = {"Mobile"}>
                           <h1>{card.type}</h1>
                         
-                          <img
+                          <img className = {"Card_Image"}
                             src={card.image}
                             onError={(e) => {
                               e.target.src = error_Image;
@@ -68,7 +68,7 @@ class Cards extends React.Component {
                             <h2>{card.name} </h2>
                             <h6>@{card.rules_name}</h6>
                             <h3 className = {"Important_Text"}>{card.text}</h3>
-                            <h3> sacrifice any time to use the ancient ability. then,remove the ancient from the game.</h3>
+                            <h3> sacrifice any time to use the ancient ability. Then, remove the ancient from the game.</h3>
                             
                             <h4>X{card.amount}</h4>
                       
@@ -80,7 +80,7 @@ class Cards extends React.Component {
                       <div className = {"Card_Spell"}>
                         <div className = {"Mobile"}>
                           <h1>{card.type}</h1>
-                          <img
+                          <img className = {"Card_Image"}
                           src={card.image}
                           onError={(e) => {
                             e.target.src = error_Image;
@@ -94,7 +94,7 @@ class Cards extends React.Component {
                               
 
                               {(card.type == "Spell")? <h3>Study</h3>:null}
-                              {(card.name == "Cancel")? <h3>Exile cancel from your hand and pay its cost: reselect an ancient.</h3>:null}
+                              {(card.name == "Cancel")? <h3>Exile cancel from your hand and pay its' cost: reselect an ancient.</h3>:null}
                               <h4>X{card.amount}</h4>
                         
                             </div>
@@ -104,7 +104,7 @@ class Cards extends React.Component {
                           <div className = {"Mobile"}>
                           <h1>{card.type}</h1>
                           
-                          <img
+                          <img className = {"Card_Image"}
                           src={card.image}
                           onError={(e) => {
                             e.target.src = error_Image;

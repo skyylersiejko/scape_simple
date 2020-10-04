@@ -85,7 +85,11 @@ max-height:400px;
   background-color: rgba(61, 61, 61, 0.5);
   text-align: center;
   border-radius: 10px;
-  padding: 10px;
+  
+  
+
+ 
+ 
 }
 h1{
   background-color: rgba(61, 61, 61, 0.5);
@@ -96,10 +100,16 @@ h1{
   text-align:center;
 }
 
+.Card_Image {
+  display:flex;
+  margin:auto;
+  
+}
+
 
 .Card_Ancient{
-  background-color:rgba(103, 58, 183, 0.5)
-  
+  background-color:rgba(103, 58, 183, 0.5);
+ 
 
 
 }
@@ -176,8 +186,9 @@ h1{
 .Mobile{
   display: flex;
   justify-content: center;
-  flex-direction: row;
+  flex-direction: column;
 }
+
 
 
 
@@ -231,6 +242,10 @@ and (-webkit-device-pixel-ratio : 3) {
     
   
   
+  }
+  .Important_Text{
+    color: rgba(214, 195, 73);
+    padding:10px;
   }
 
   .Card_Ancient{

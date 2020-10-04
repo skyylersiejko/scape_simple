@@ -6,6 +6,7 @@ import Panel from "../../hoc/Panel/Panel";
 
 
 
+
 class Main extends React.Component {
   constructor(props) {
     super(props);
@@ -21,6 +22,8 @@ class Main extends React.Component {
           </div>
         </div>
         <About />
+   
+        
        <Panel/>
       </div>
     );
