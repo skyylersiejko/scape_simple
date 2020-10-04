@@ -4,7 +4,7 @@ import Main from "./components/Main/Main";
 
 export default function App() {
   return (
-    <div>
+    <div className = {"App"}>
       <Main />
     </div>
   );

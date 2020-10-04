@@ -21,7 +21,7 @@ class Main extends React.Component {
             <Media type = {"intro"}/>
         </div>
         <div className = {"ScrollBox"}>
-            <Cards/>
+           <Cards/>
         </div>
         <div className = {"RightPanel"}>
         <h1>Tournaments starting in January!</h1>

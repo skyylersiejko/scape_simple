@@ -1,23 +1,57 @@
 .Main {
   display: flex;
   flex-direction: column;
-  margin: auto;
   background-color: rgba(51, 0, 51);
-  width: 100vw;
-  height: 100%;
+ 
+  
+ 
 }
 .Main_Title {
-  position: relative;
-  left: 44%;
-  width: 400px;
-  height: auto;
+  display: flex;
+  justify-content: center;;
+ 
 }
 
 .Banner {
   background-color: rgba(61, 61, 61, 0.5);
-  width: auto;
-  height: auto;
+
   border-radius: 1px;
 
   box-shadow: 0px 3px 10px black;
+}
+
+
+/*MEDIA===========================*/
+/*IPhone-X*/
+@media only screen 
+and (min-device-width : 375px) 
+and (max-device-width : 812px)
+and (-webkit-device-pixel-ratio :3) { 
+
+.Main {
+  display: flex;
+  flex-direction: column;
+ 
+  background-color: rgba(51, 0, 51);
+  height:100%;
+  width:100vw;
+  justify-content:center;
+
+ 
+}
+.Main_Title {
+  display: flex;
+  justify-content: center;
+ 
+}
+
+.Banner {
+  background-color: rgba(61, 61, 61, 0.5);
+  border-radius: 1px;
+  box-shadow: 0px 3px 10px black;
+}
+
+  
+
+  
 }

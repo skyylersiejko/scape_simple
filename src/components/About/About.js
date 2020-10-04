@@ -58,7 +58,9 @@ class About extends React.Component {
             <li> Landscape = "basic land"</li>
             <li> Replenish = "untap and upkeep"</li>
             <li> Yard = "discard pile"</li>
-            <li>Recycle X = "shuffle X amount of cards into your deck and draw that many cards." </li>
+            <li>Recycle = "shuffle your hand into your deck and draw that many cards." </li>
+            <li>  / = "add to the stack" or play card with forward order, completing the sequence</li>
+
           </ul>
           <button
             onClick={(e) => {
@@ -89,8 +91,8 @@ class About extends React.Component {
       <div className={"About"}>
         <div className={"Info_Title"}>What is Scape?</div>
         <div className={"Text"}>
-          A game like Magic; Scape brings all the best aspects of Magic, but
-          with a set deck and more complex actions. Both Players start with the
+               A game like Magic; Scape brings all the best aspects of Magic, but
+          with a set-deck and more complex actions. Both Players start with the
           same deck (think Chess); its optimized for better game theory/play.
           Instead of the cards telling you what action to take, the player must
           utilize their WillPower as a resource and cast spells to perform

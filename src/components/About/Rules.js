@@ -34,19 +34,12 @@ const rules = {
     "Sacrifice a landscape: gain 1 Will-Power. (you may do this as a response, and it cannot be responded to as an action and does not use the stack)",
     "You may discard 3 cards and draw a card anytime",
     "All landscapes and Will-Power are the same non-color.",
-    "Cultivate: You may, during your play phase, sacrifice any amount of beings with power equal to a being in your yard to cast a being from your yard with equal power, but cannot attack on the turn it was summoned. It comes into play exhausted.",
     "You may sacrifice two permanents of the same type any time to draw a card.",
     "Ancients cannot be harvested.",
-    "Study: You may cast a spell from your yard to your hand by sacrificing beings or landscapes equal to a power of a spell in your yard. The player takes double damage equal to the chosen spells power. Exile that spell.",
-    "Evolve: You may, during your play phase, spend Will-Power equal to or less than the number of landscapes you control, and transform one of your landscapes into a being with stats WP/WP-2.",
-    "Nourish: You may sacrifice a being during your play phase in order to return a landscape to your hand from the yard.",
     "Exile cancel from your hand and pay its cost: reselect an ancient.",
     "A player may not respond to an Ancient ability activation.",
     "You may exhaust a landscape and sacrifice the same landscape in a single turn.",
     "Sacrificing beings is an activated ability and can be responded to.",
-    "Final Blow: If two players both have below 1 will power in the same moment, priority switches. The player to put the last card on the stack will win.",
-    "Last-breathe: if you have 10 or more cards in your yard, you may exile all cards and set your life total to 1.",
-    "Stack War: If there are more than 4 cards on the stack, whomever plays the last card on the stack and after the stack resolves, draws a card."
   ],
 
   HOW_TO_WIN: [
@@ -58,8 +51,27 @@ const rules = {
     "At your end step, there are no more cards in your deck."
   ],
 
+  CASTING: [
+    "You may cast a being for its power by exhausting landscapes equal to that beings power.",
+    "⅔ being may be cast by: Exhausting 3 landscapes.Exhausting 2 landscapes and discarding a card as an additional cost.Exhausting 2 landscapes and sacrificing a landscape as an additional cost.",
+    "All spells may be cast by paying will-power equal to the number of dots on the card.",
+    "For each Grow casted in a single turn that player must pay the original cost of Grow multiplied by the number of times played within that turn.",
+    "Ignite deals cumulative damage for each copy on the stack, adding +1 damage for each copy upon resolution of the stack."
+  ],
+
   RITUAL: [
     "Stack rituals may be crafted anytime a stack exists. Action rituals may only be used on your turn."
+  ],
+
+  PLAYER_RITUALS: 
+  [
+    "CULTIVATE: You may, during your play phase, sacrifice any amount of beings with power equal to a being in your yard to cast a being from your yard with equal power, but cannot attack on the turn it was summoned. It comes into play exhausted.",
+    "STUDY: You may cast a spell from your yard by sacrificing beings or landscapes equal to a power of a spell in your yard. The player takes double damage equal to the chosen spells power. remove the spell from the game.",
+    "EVOLVE: You may, during your play phase, spend Will-Power equal to or less than the number of landscapes you control, and transform one of your landscapes into a being with stats WP/WP-2.",
+    "NOURISH: You may sacrifice a being during your play phase in order to return a landscape to your hand from the yard.",
+    "FINAL BLOW: If two players both have below 1 will power in the same moment, priority switches. The player to put the last card on the stack will win.",
+    "LAST BREATHE: if you have 10 or more cards in your yard, you may exile all cards and set your life total to 1.",
+    "STACK WAR: If there are more than 4 cards on the stack, whomever plays the last card on the stack and after the stack resolves, draws a card.",
   ],
 
   STACK_RITUALS: [
@@ -72,21 +84,22 @@ const rules = {
   ],
 
   ACTION_RITUALS: [
-    " landscape/landscape/ignite/being 2: (+1 damage from ignite)",
+    " landscape/landscape/ignite/[being_2]: +1 damage from ignite",
     "landscape/landscape/being one /being one/ ignite: (+1 damage ignite)",
     "sac ancient/ sac two landscapes:	draw three cards, discard a card.",
-    "there are 3 beings of the same name/ignite or spike(to all, but one,  of the same type in play).",
+    "if there are 3 beings of the same name and you may cast ignite/spike(deals damage to all, but one target being of the same name).",
     "sacrifice two flyers: gain control of target being, draw a card.",
     "if you have 5 or more cards in your yard/cancel: exile target players’ yard."
   ],
 
-  CASTING: [
-    "You may cast a being for its power by exhausting landscapes equal to that beings power.",
-    "⅔ being may be cast by: Exhausting 3 landscapes.Exhausting 2 landscapes and discarding a card as an additional cost.Exhausting 2 landscapes and sacrificing a landscape as an additional cost.",
-    "All spells may be cast by paying will-power equal to the number of dots on the card.",
-    "For each Grow casted in a single turn that player must pay the original cost of Grow multiplied by the number of times played within that turn.",
-    "Ignite deals cumulative damage for each copy on the stack, adding +1 damage for each copy upon resolution of the stack."
-  ]
+
+ 
+
 };
+
+
+
+
+
 
 export default rules;
