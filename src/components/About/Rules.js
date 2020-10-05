@@ -48,7 +48,7 @@ const rules = {
     "Your opponent does not have any landscapes in play at their end step.",
     "Your opponent’s Will-Power has been reduced to 0 or below.",
     "When the 10th landscape enters play under your control. (this action cannot be responded to)",
-    "At the beginning of your turn. You control one of each permanent and have one of each spell type in your yard.",
+    "At the beginning of your turn: You control one of each permanent and have one of each spell type in your yard.",
     "You have sacrificed Field of Imagination for the 5th time (this action cannot be responded to).",
     "At your end step, there are no more cards in your deck."
   ],
@@ -72,7 +72,7 @@ const rules = {
     "EVOLVE: You may, during your play phase, spend Will-Power equal to or less than the number of landscapes you control, and transform one of your landscapes into a being with stats WP/WP-2.",
     "NOURISH: You may sacrifice a being during your play phase in order to return a landscape to your hand from the yard.",
     "FINAL BLOW: If two players both have below 1 will power in the same moment, priority switches. The player to put the last card on the stack will win.",
-    "LAST BREATHE: if you have 10 or more cards in your yard, you may exile all cards and set your life total to 1.",
+    "LAST BREATH: if you have 10 or more cards in your yard, you may exile all cards and set your life total to 1.",
     "STACK WAR: If there are more than 4 cards on the stack, whomever plays the last card on the stack and after the stack resolves, draws a card.",
   ],
 
