@@ -19,6 +19,7 @@ class Main extends React.Component {
         <div className = {"Panel"}>
             <div className = {"LeftPanel"}>
             <a className = {"Download"} href={scape_download} download>Download the Play Kit</a>
+           
             <Media type = {"intro"}/>
         </div>
         <div className = {"ScrollBox"}>

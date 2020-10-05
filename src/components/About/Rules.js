@@ -1,7 +1,9 @@
 const rules = {
   START_OF_GAME: [
+    "Each player places all ancients in a pile outside the game",
+    "Each player Shuffles their deck and presents to opponent for cutting", 
     "Each player draws 7 cards",
-    "Each player looks at their hands; then each player selects and starts with an Ancient Landscape.",
+    "Each player looks at their hands; then each player selects and starts with an Ancient in play.",
     "Each player starts the game with 25 Will-Power.",
     "NO MULLIGANS (Hint: select Field of imagination if you do not like your hand)",
     "players do not draw cards on the starting players turn.)"
@@ -12,10 +14,10 @@ const rules = {
     "Play: play any being spells.",
     "Combat: pre-combat → declare attackers → blocks → pre-damage → resolve damage.",
     "Play:  play any being spells.",
-    "End:  respond to any game actions or player abilities on the stack."
+    "End: respond to any game actions or player abilities on the stack."
   ],
   DURING_PLAY_PHASE: [
-    "Each player may play landscapes equal to the turn number. With no more than three lands per turn maximum.",
+    "During your turn you may play landscapes equal to the turn number. With no more than three lands per turn maximum.",
     "EACH player draws a card on each turn.",
     "You may only cast non-being spells with Will-Power",
     "Beings may attack the first turn played",
@@ -53,7 +55,7 @@ const rules = {
 
   CASTING: [
     "You may cast a being for its power by exhausting landscapes equal to that beings power.",
-    "⅔ being may be cast by: Exhausting 3 landscapes.Exhausting 2 landscapes and discarding a card as an additional cost.Exhausting 2 landscapes and sacrificing a landscape as an additional cost.",
+    "[being_flyer] may be cast by: Exhausting 3 landscapes.Exhausting 2 landscapes and discarding a card as an additional cost.Exhausting 2 landscapes and sacrificing a landscape as an additional cost.",
     "All spells may be cast by paying will-power equal to the number of dots on the card.",
     "For each Grow casted in a single turn that player must pay the original cost of Grow multiplied by the number of times played within that turn.",
     "Ignite deals cumulative damage for each copy on the stack, adding +1 damage for each copy upon resolution of the stack."
@@ -66,7 +68,7 @@ const rules = {
   PLAYER_RITUALS: 
   [
     "CULTIVATE: You may, during your play phase, sacrifice any amount of beings with power equal to a being in your yard to cast a being from your yard with equal power, but cannot attack on the turn it was summoned. It comes into play exhausted.",
-    "STUDY: You may cast a spell from your yard by sacrificing beings or landscapes equal to a power of a spell in your yard. The player takes double damage equal to the chosen spells power. remove the spell from the game.",
+    "STUDY: You may cast a spell from your yard by sacrificing beings or landscapes equal to a power of a spell in your yard. The casting player takes double damage in will-power equal to the chosen spells power. remove the spell from the game.",
     "EVOLVE: You may, during your play phase, spend Will-Power equal to or less than the number of landscapes you control, and transform one of your landscapes into a being with stats WP/WP-2.",
     "NOURISH: You may sacrifice a being during your play phase in order to return a landscape to your hand from the yard.",
     "FINAL BLOW: If two players both have below 1 will power in the same moment, priority switches. The player to put the last card on the stack will win.",
@@ -79,7 +81,7 @@ const rules = {
     "being 5/spike/grow: (create a [being 2])",
     "ignite/ignite/grow: (destroy target players non-ancient landscape)",
     "flyer/cancel/ignite: (create a 3/1 flyer)",
-    "grow/grow(controlled by different players): cancels reselecting an ancient.",
+    "grow/grow(controlled by different players): negates reselecting an ancient.",
     "grow/cancel: Each player draws a card."
   ],
 

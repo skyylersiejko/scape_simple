@@ -92,7 +92,7 @@ class About extends React.Component {
       <div className={"About"}>
         <div className={"Info_Title"}>What is Scape?</div>
         <div className={"Text"}>
-               A game like Magic; Scape brings all the best aspects of Magic, but
+              A game like Magic; Scape brings all the best aspects of Magic, but
           with a set-deck and more complex actions. Both Players start with the
           same deck (think Chess); its optimized for better game theory/play.
           Instead of the cards telling you what action to take, the player must
@@ -102,6 +102,31 @@ class About extends React.Component {
           achieve victory, it is up to the player to decide their fate. Which
           Ancient will you choose to support?
         </div>
+
+
+
+
+        <div className={"Info_Title"}>Why Scape was Created?</div>
+        <div className={"Text"}>
+             Scape was created because we felt like Magic was becoming too unstable and bloated. 
+             "I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the game."
+             Magic, Hearthstone, and most TCG(s) are just unstable by way of change due to market driven goals. 
+             I wanted to rebuild an engine that was hyper competetive and could support complex, but fair gameplay without the need for a pay wall. 
+             As we play-tested this game we realized just how much more efficient, complex, and overall fun Scape started to become. We found ourselves wanting to play Scape more than Magic.
+             Another incredible aspect of Scape is that, while the deck doesn't change, the rituals and actions do.
+             In other words: we will release new rituals to perform in the game as the development of the game progresses.
+             Instead of having a prerelaese weekend for new cards; we will have release events for new Rituals.
+             we see Ritual based gameplay as the next evolution of competetive card games; Scape is what magic would be without capitalism driven development.
+             lets be honest, Hasbro has ruined an amazing engine, and dont get me started on Artifact. Scape is different. Its Free to build and play.
+             We hope to release a digital version of the game soon. 
+
+
+        </div>
+
+
+
+
+
         <div className={"Info_Title"}>How to Play</div>
         <div>(the rules assume you are familiar with Magic)</div> 
         {this.displayVocab()}
