@@ -29,7 +29,7 @@ _onReady(e){
   render() {
     return <div className={"Media"}>
      { (this.props.type === "youtube")?
-      <YouTube videoId="2g811Eo7K8U" opts={this.state.opts} onReady={this._onReady} />:
+      <YouTube videoId="2RlA0TP5dHY" opts={this.state.opts} onReady={this._onReady} />:
       (this.props.type === "intro")?
         <Player  
         url={Intro}

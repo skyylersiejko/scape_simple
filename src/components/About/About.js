@@ -115,9 +115,9 @@ class About extends React.Component {
              As we play-tested this game we realized just how much more efficient, complex, and overall fun Scape started to become. We found ourselves wanting to play Scape more than Magic.
              Another incredible aspect of Scape is that, while the deck doesn't change, the rituals and actions do.
              In other words: we will release new rituals to perform in the game as the development of the game progresses.
-             Instead of having a prerelaese weekend for new cards; we will have release events for new Rituals.
+             Instead of having a prerelease weekend for new cards; we will have release events for new Rituals.
              we see Ritual based gameplay as the next evolution of competetive card games; Scape is what magic would be without capitalism driven development.
-             lets be honest, Hasbro has ruined an amazing engine, and dont get me started on Artifact. Scape is different. Its Free to build and play.
+             Scape is different. Its Free to build and play.
              We hope to release a digital version of the game soon. 
 
 
