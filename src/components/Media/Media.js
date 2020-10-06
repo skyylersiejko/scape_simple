@@ -35,9 +35,9 @@ _onReady(e){
         url={Intro}
         className='react-player'
         playing = "true"
-        width='100%'
+        width="100%"
         loop = "true"
-        height='100%'
+        height="100%"
         />:
         <Player  
         url={this.props.url || Intro}

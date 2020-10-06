@@ -24,8 +24,15 @@
   }
   
   .RightPanel{
-  
+   
 
+}
+.SubText{
+  color:white;
+  font-size: 24px;
+  font-family: "Varela Round", sans-serif;
+  text-align: center;
+  background-color: rgba(61, 61, 61, 0.75);;
 }
 
 .Download{

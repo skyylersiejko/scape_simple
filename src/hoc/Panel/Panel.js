@@ -26,7 +26,7 @@ class Main extends React.Component {
            <Cards/>
         </div>
         <div className = {"RightPanel"}>
-        <h1>Tournaments starting in January!</h1>
+        <div className = {"SubText"}>Tournaments starting in January!</div>
         <Media type = {"youtube"}/>
         </div>
      
