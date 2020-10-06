@@ -20,7 +20,7 @@ class Main extends React.Component {
           <div className={"Main_Title"}>
             <img alt={"scape_logo"} src={Logo} />
           </div>
-          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center"}}> the card game designed to be fast and fair</div>
+          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center"}}> version 1.0</div>
         </div>
         <About />
    

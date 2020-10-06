@@ -18,10 +18,10 @@ class Cards extends React.Component {
         return (
           <div className={"Card_Slider"}>
             <div className = {"Card_Title"}>Cards</div>
-            {Object.values(CardData).map((card) => {
+            {Object.values(CardData).map((card, index) => {
               return (
-                <React.Fragment >
-                  <div className = {"Card_Container"}>
+                <React.Fragment key = {index} >
+                  <div  className = {"Card_Container"}>
                     
                   {(card.type === "Being")?
                   <div className = {"Card_Being"}>

@@ -36,15 +36,19 @@
 
 .Text {
 
-  font-size: 20px;
-  padding: 25px;
-  line-height: 40px;
+  font-size: 18px;
+  padding: 30px;
+  line-height: 30px;
   display: flex;
   justify-content: center;
   font-style: bold;
   text-align: center;
   font-family: 'Poppins', sans-serif;
+  font-family: "Varela Round", sans-serif;
   background-color: rgba(61, 61, 61, 0.4);
+  
+  margin-left:15%;
+  margin-right:15%;
 
   border-radius: 10px;
 
@@ -104,12 +108,15 @@ and (-webkit-device-pixel-ratio : 3) {
 
   .Text{
     font-size: 16px;
-   
+   display:flex;
     line-height: 25px;
    
     font-style: bold;
     text-align: center;
     font-family: 'Piazzolla', serif;
+    font-family: "Varela Round", sans-serif;
+    margin-left:5%;
+    margin-right:5%;
     
   }
   

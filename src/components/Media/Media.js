@@ -9,11 +9,11 @@ class Media extends React.Component {
     super(props);
     this.state = {
       opts: {
-        height: 'auto',
-        width: 'auto',
+        height: '500px',
+        width: '500px',
         playerVars: {
           // https://developers.google.com/youtube/player_parameters
-          autoplay: 0,
+          autoplay:0,
         }
      
     },
@@ -29,22 +29,24 @@ _onReady(e){
   render() {
     return <div className={"Media"}>
      { (this.props.type === "youtube")?
-      <YouTube videoId="2RlA0TP5dHY" opts={this.state.opts} onReady={this._onReady} />:
+    
+      <YouTube className = {"Introduction"} videoId="93cztlMM-TU" opts={this.state.opts} onReady={this._onReady} />:
       (this.props.type === "intro")?
+
         <Player  
         url={Intro}
         className='react-player'
-        playing = "true"
+        playing = {true}
         width="100%"
-        loop = "true"
+        loop = {true}
         height="100%"
         />:
         <Player  
         url={this.props.url || Intro}
         className='react-player'
-        playing = "true"
+        playing = {true}
         width='100%'
-        loop = "true"
+        loop = {true}
         height='100%'
         />
 
