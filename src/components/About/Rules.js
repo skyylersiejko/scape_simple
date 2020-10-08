@@ -17,7 +17,7 @@ const rules = {
     "End: respond to any game actions or player abilities on the stack."
   ],
   DURING_PLAY_PHASE: [
-    "During your turn you may play landscapes equal to the turn number. With no more than three lands per turn maximum.",
+    "During your turn you may play landscapes equal to the turn number. With no more than three landscapes per turn maximum.",
     "EACH player draws a card on each turn.",
     "You may only cast non-being spells with Will-Power",
     "Beings may attack the first turn played",
