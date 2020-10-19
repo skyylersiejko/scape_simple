@@ -1,3 +1,6 @@
+import CardInfo from  '../../CardData';
+
+
 const rules = {
   START_OF_GAME: [
     "Each player places all ancients in a pile outside the game",
@@ -93,6 +96,34 @@ const rules = {
     "sacrifice two flyers: gain control of target being, draw a card.",
     "if you have 5 or more cards in your yard/cancel: exile target players’ yard."
   ],
+
+
+  CARDS: [
+    CardInfo.nest_of_swarm.name+" (Ancient)" +" :: "+CardInfo.nest_of_swarm.text,
+    CardInfo.misty_isle.name+" (Ancient)" +" :: " +CardInfo.misty_isle.text,
+    CardInfo.smoldering_volcano.name+" (Ancient)" + " :: " + CardInfo.smoldering_volcano.text,
+    CardInfo.cavern_of_the_see.name+" (Ancient)" + " :: " + CardInfo.cavern_of_the_see.text,
+    CardInfo.field_of_imagination.name+" (Ancient)" + " :: "+ CardInfo.field_of_imagination.text,
+    CardInfo.landscape.name+ " :: "+ CardInfo.landscape.text,
+    CardInfo.spike.name + "(3)" + " :: " + CardInfo.spike.text,
+    CardInfo.cancel.name + "(3)" + " :: " +CardInfo.cancel.text,
+    CardInfo.ignite.name +"(1)"+ " :: " + CardInfo.ignite.text,
+    CardInfo.grow.name + "(3)"+ " :: "+ CardInfo.grow.text,
+    CardInfo.being_one.name+ "(1/1)" + " :: " + CardInfo.being_one.text,
+    CardInfo.being_two.name+ "(2/2)" + " :: " + CardInfo.being_two.text,
+    CardInfo.being_three.name + "(3/3)"+ " :: " + CardInfo.being_three.text,
+    CardInfo.being_four.name + "(4/4)"+ " :: " + CardInfo.being_four.text ,
+    CardInfo.being_five.name+ "(5/5)" + " :: " + CardInfo.being_five.text,
+    CardInfo.being_flying.name+ "(2/3)" + " :: " + CardInfo.being_flying.text,
+
+
+
+
+
+
+
+
+  ]
 
 
  

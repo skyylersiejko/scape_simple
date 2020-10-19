@@ -7,6 +7,7 @@ import Panel from "../../hoc/Panel/Panel";
 
 
 
+
 class Main extends React.Component {
   constructor(props) {
     super(props);
@@ -23,7 +24,7 @@ class Main extends React.Component {
           <div style = {{color: "rgba(214, 195, 73)", textAlign:"center"}}> version 1.0</div>
         </div>
         <About />
-   
+     
         
        <Panel/>
       </div>

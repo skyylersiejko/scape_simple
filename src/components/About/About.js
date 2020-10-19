@@ -92,7 +92,7 @@ class About extends React.Component {
       <div className={"About"}>
         <div className={"Info_Title"}>What is Scape?</div>
         <div className={"Text"}>
-              A game like Magic; Scape brings all the best aspects of Magic, but
+              A new card game; Scape brings all the best aspects of interaction within current TCG(s), but
           with a set-deck and more complex actions. Both Players start with the
           same deck (think Chess); its optimized for better game theory/play.
           Instead of the cards telling you what action to take, the player must
@@ -109,10 +109,9 @@ class About extends React.Component {
         <div className={"Info_Title"}>Why was Scape Created?</div>
         <div className={"Text"}>
              Scape is different. It's Free to build and play. 
-             Scape was created because we felt like Magic was becoming too unstable and bloated;
-             Magic, Hearthstone, and most TCG(s) are just too large by way of change due to market driven goals. 
+             Scape was created because we feel like other TCG(s) are becoming too unstable and bloated. Most TCG(s) are just too large by way of change due to market driven goals. 
              I wanted to rebuild an engine that was hyper competitive and could support complex, but fair gameplay without the need for a pay wall. 
-             As we play-tested this game we realized just how much more efficient, complex, and overall fun Scape started to become. We found ourselves wanting to play Scape more than Magic.
+             As we play-tested this game we realized just how much more efficient, complex, and overall fun Scape started to become. We found ourselves wanting to play Scape more than other TCG(s).
              Another incredible aspect of Scape is that, while the deck doesn't change, the rituals and actions do.
              In other words: we will release new rituals to perform in the game as the development of the game progresses.
              Instead of having a prerelease weekend for new cards; we will have release events for new Rituals.
@@ -130,7 +129,7 @@ class About extends React.Component {
 
 
         <div className={"Info_Title"}>How to Play</div>
-        <div>(the rules assume you are familiar with Magic)</div> 
+        <div>(the rules assume you are familiar with other TCG(s))</div> 
         {this.displayVocab()}
         <div className={"Scroll"}>{this.displayRules()}</div>
         

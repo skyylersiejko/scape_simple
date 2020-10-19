@@ -8,6 +8,7 @@
   ],
   "main": "src/index.js",
   "dependencies": {
+    "axios": "^0.20.0",
     "firebase": "^7.22.1",
     "react": "16.13.1",
     "react-dom": "16.13.1",

@@ -132,7 +132,7 @@ const Cards = {
         type: "Being",
         power:2 ,
         defense:3,
-        text: "Sacrifice or play from your yard as part of a ritual. may attack without exhausting.",
+        text: "Sacrifice or play from your yard as part of a ritual. may attack without exhausting.cannot be blocked by creatures without flying.",
         image: being_flying_image,
         rules_name: "being_flyer",
         amount:4,
