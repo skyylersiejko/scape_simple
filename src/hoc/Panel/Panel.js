@@ -5,6 +5,7 @@ import Player from 'react-player';
 import Cards from "../../components/Cards/Cards";
 import Media from "../../components/Media/Media";
 import scape_download from "../../res/Scape_Kit.zip"
+import Picture from '../../res/waterfall_logo.png'
 
 
 
@@ -22,11 +23,9 @@ class Main extends React.Component {
            
             <Media type = {"intro"}/>
         </div>
-        <div className = {"ScrollBox"}>
-           <Cards/>
-        </div>
+       <img className = {"Picture"} src = {Picture}/>
         <div className = {"RightPanel"}>
-        <div className = {"SubText"}>Tournaments starting in January!</div>
+        <div className = {"SubText"}>More Updates Coming Soon!</div>
         <Media type = {"youtube"}/>
         </div>
      

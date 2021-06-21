@@ -2,7 +2,7 @@ import React from "react";
 import "./Media.css";
 import YouTube from 'react-youtube';
 import Player from 'react-player';
-import Intro from '../../res/Scape_Title_Screen.mov';
+import Intro from '../../res/Ancients.png';
 
 class Media extends React.Component {
   constructor(props) {
@@ -30,16 +30,12 @@ _onReady(e){
     return <div className={"Media"}>
      { (this.props.type === "youtube")?
     
-      <YouTube className = {"Introduction"} videoId="93cztlMM-TU" opts={this.state.opts} onReady={this._onReady} />:
+      <YouTube className = {"Introduction"} videoId="C6AwN0yOx3Y" opts={this.state.opts} onReady={this._onReady} />:
       (this.props.type === "intro")?
 
-        <Player  
-        url={Intro}
-        className='react-player'
-        playing = {true}
-        width="100%"
-        loop = {true}
-        height="100%"
+        <img 
+        src={Intro}
+        className={"Left_Image"}
         />:
         <Player  
         url={this.props.url || Intro}

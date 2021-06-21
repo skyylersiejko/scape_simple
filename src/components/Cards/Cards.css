@@ -5,6 +5,7 @@
   display:flex;
   flex-direction: column;
   justify-content: center ;
+  box-shadow: inset 0 0 5px #000000;
  
   ;
 
@@ -31,6 +32,8 @@
   word-wrap: break-word;
   margin:auto;
   background-color:rgba(61, 61, 61, 0.75);
+  font-family: 'Press Start 2P', cursive;
+
 
 
   
@@ -56,9 +59,11 @@ max-height:400px;
 .Card_Title {
   color: white;
   font-size: 40px;
-  font-family: "Varela Round", sans-serif;
+
   background-color: rgba(61, 61, 61, 0.5);
   text-align:center;
+  font-family: 'Press Start 2P', cursive;
+
  
   
 }
@@ -71,10 +76,12 @@ max-height:400px;
   box-shadow: 0px 3px 3 px black;
   border-radius: 5px ;
   border:2px solid rgba(61, 61, 61, 0.75);  
-  font-family: "Varela Round", sans-serif;
+  font-family: 'Press Start 2P', cursive;
+
   margin:auto;
   max-width: 800px;
   min-width: 400px;
+  box-shadow: inset 0 0 5px #000000;
 
 
 }
@@ -86,6 +93,7 @@ max-height:400px;
   background-color: rgba(61, 61, 61, 0.5);
   text-align: center;
   border-radius: 10px;
+  box-shadow: inset 0 0 5px #000000;
  
  
 
@@ -172,7 +180,7 @@ h1{
   overflow-x: hidden;
   height: 580px;
   border-radius: 10px;
-
+  width:90vw;
  
   position: relative;
 }

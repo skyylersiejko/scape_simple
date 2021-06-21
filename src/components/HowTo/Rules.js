@@ -1,4 +1,5 @@
 import CardInfo from  '../../CardData';
+import Scape_Back from '../../res/scape_back_logo.png'
 
 
 const rules = {
@@ -9,7 +10,7 @@ const rules = {
     "Each player looks at their hands; then each player selects and starts with an Ancient in play.",
     "Each player starts the game with 25 Will-Power.",
     "NO MULLIGANS (Hint: select Field of imagination if you do not like your hand)",
-    "players do not draw cards on the starting players turn.)"
+    "players do not draw cards on the starting players turn."
   ],
   PHASES_OF_TURN: [
     "Replenish: all landscapes and beings are unexhausted.",
@@ -24,7 +25,7 @@ const rules = {
     "EACH player draws a card on each turn.",
     "You may only cast non-being spells with Will-Power",
     "Beings may attack the first turn played",
-    "You can only cast being spells by harvesting landscapes",
+    "You can only cast being spells by exauhsting landscapes",
     "If you have not played a landscape in 3 consecutive turns, you may search for a landscape and play it harvested on your end step.(players must keep physical evidence of the count)",
     "If you have not casted a spell for 3 consecutive turns, you may draw a card on your next replenish step..(players must keep physical evidence of the count)"
   ],
@@ -34,13 +35,13 @@ const rules = {
   GENERAL: [
     "You may cast non-being spells anytime, and only with Will-Power.",
     "All non-being spells can be played anytime a player has priority.",
-    "You may cast being only by harvesting landscapes.",
+    "You may cast being only by exauhsting landscapes.",
     "You may sacrifice landscapes anytime.",
-    "Sacrifice a landscape: gain 1 Will-Power. (you may do this as a response, and it cannot be responded to as an action and does not use the stack)",
+    "Sacrifice/Harvest a landscape: gain 1 Will-Power. (you may do this as a response, and it cannot be responded to as an action and does not use the stack)",
     "You may discard 3 cards and draw a card anytime",
     "All landscapes and Will-Power are the same non-color.",
     "You may sacrifice two permanents of the same type any time to draw a card.",
-    "Ancients cannot be harvested.",
+    "Ancients cannot be harvested only Sacrificed.",
     "Exile cancel from your hand and pay its cost: reselect an ancient.",
     "A player may not respond to an Ancient ability activation.",
     "You may exhaust a landscape and sacrifice the same landscape in a single turn.",
@@ -49,7 +50,7 @@ const rules = {
 
   HOW_TO_WIN: [
     "Your opponent does not have any landscapes in play at their end step.",
-    "Your opponent’s Will-Power has been reduced to 0 or below.",
+    "Your opponent’s Will-Power has been reduced to below 1",
     "When the 10th landscape enters play under your control. (this action cannot be responded to)",
     "At the beginning of your turn: You control one of each permanent and have one of each spell type in your yard.",
     "You have sacrificed Field of Imagination for the 5th time (this action cannot be responded to).",
@@ -89,7 +90,7 @@ const rules = {
   ],
 
   ACTION_RITUALS: [
-    " landscape/landscape/ignite/[being_2]: +1 damage from ignite",
+    "landscape/landscape/ignite/[being_2]: +1 damage from ignite",
     "landscape/landscape/being one /being one/ ignite: (+1 damage ignite)",
     "sac ancient/ sac two landscapes:	draw three cards, discard a card.",
     "if there are 3 beings of the same name and you may cast ignite/spike(deals damage to all, but one target being of the same name).",
@@ -115,6 +116,48 @@ const rules = {
     CardInfo.being_four.name + "(4/4)"+ " :: " + CardInfo.being_four.text ,
     CardInfo.being_five.name+ "(5/5)" + " :: " + CardInfo.being_five.text,
     CardInfo.being_flying.name+ "(2/3)" + " :: " + CardInfo.being_flying.text,
+
+
+
+
+
+
+
+
+  ],
+
+  DECK_TO_MTG:[
+    "24X Forest *landscape",
+    "4x Willow Elf or Fugitive Wizard (1/1)",
+    "4x Cylian Elf (2/2)",
+    "4x Centaur Courser (3/3)",
+    "4x Rumbling Baloth (4/4)",
+    "4x Hollowhenge Beast (5/5)",
+    "4x Oko's Accomplices (2/3) *flyer",
+    "4x Shock (1) *ignite",
+    "4x Cancel (3)",
+    "4x Natural Connection (3) *grow",
+    "4x Flame Lash (4) *spike",
+    "5X Ancients  *draw your own ;)"
+
+  ],
+
+  PROXY_IMAGES: [
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=524956&type=card",
+    "https://product-images.tcgplayer.com/fit-in/400x558/11041.jpg",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=174935&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=466922&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=489409&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=262868&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=475928&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=517594&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=485369&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=482812&type=card",
+    "https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=489506&type=card",
+    Scape_Back,
+  
+
+
 
 
 

@@ -1,6 +1,13 @@
+
+
+
 .Panel{
     display:flex;
     flex-direction: row;
+    font-family: 'Press Start 2P', cursive;
+    box-shadow: inset 0 0 5px #000000;
+    
+
   
    
     
@@ -12,25 +19,56 @@
     flex-direction: column;
     margin:auto;
     padding:25px;
+    
+
    
     
+
+  }
+
+  .Picture{
+    margin:auto;
+    border: 5px solid rgba(61, 61, 61, 0.4);
+    display:flex;
+    align-content: center;
+    border-radius: 10px;
+   
+
+
+  }
+
+  .Left_Image{
+   border: 5px solid rgba(61, 61, 61, 0.4);
+   margin:auto;
+   border-radius: 10px;
+
+
+   
+  }
+
+  .Left_Image:hover{
+    transform: scale(2);
+   
 
   }
   
   .LeftPanel{
    
-    
+ 
+
   
   }
   
   .RightPanel{
-   
+    
+
 
 }
 .SubText{
   color:white;
   font-size: 24px;
-  font-family: "Varela Round", sans-serif;
+  font-family: 'Press Start 2P', cursive;
+
   text-align: center;
   background-color: rgba(61, 61, 61, 0.75);;
 }

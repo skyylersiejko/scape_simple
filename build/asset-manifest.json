@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.css": "/static/css/main.a4083878.chunk.css",
-    "main.js": "/static/js/main.8b71036c.chunk.js",
-    "main.js.map": "/static/js/main.8b71036c.chunk.js.map",
+    "main.css": "/static/css/main.ba46922f.chunk.css",
+    "main.js": "/static/js/main.b5d08330.chunk.js",
+    "main.js.map": "/static/js/main.b5d08330.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.7bb332b4.js",
     "runtime-main.js.map": "/static/js/runtime-main.7bb332b4.js.map",
-    "static/js/2.81c49d79.chunk.js": "/static/js/2.81c49d79.chunk.js",
-    "static/js/2.81c49d79.chunk.js.map": "/static/js/2.81c49d79.chunk.js.map",
+    "static/js/2.0e41dc1d.chunk.js": "/static/js/2.0e41dc1d.chunk.js",
+    "static/js/2.0e41dc1d.chunk.js.map": "/static/js/2.0e41dc1d.chunk.js.map",
     "index.html": "/index.html",
-    "precache-manifest.29d3fb53a96d1a39525a2799d3fc3214.js": "/precache-manifest.29d3fb53a96d1a39525a2799d3fc3214.js",
+    "precache-manifest.088be3cd64880bbf54aae0b1bfcab345.js": "/precache-manifest.088be3cd64880bbf54aae0b1bfcab345.js",
     "service-worker.js": "/service-worker.js",
-    "static/css/main.a4083878.chunk.css.map": "/static/css/main.a4083878.chunk.css.map",
-    "static/js/2.81c49d79.chunk.js.LICENSE.txt": "/static/js/2.81c49d79.chunk.js.LICENSE.txt",
+    "static/css/main.ba46922f.chunk.css.map": "/static/css/main.ba46922f.chunk.css.map",
+    "static/js/2.0e41dc1d.chunk.js.LICENSE.txt": "/static/js/2.0e41dc1d.chunk.js.LICENSE.txt",
+    "static/media/Ancients.png": "/static/media/Ancients.d89a7476.png",
     "static/media/Scape_Kit.zip": "/static/media/Scape_Kit.15f136f2.zip",
-    "static/media/Scape_Title_Screen.mov": "/static/media/Scape_Title_Screen.449bfab8.mov",
     "static/media/Scape_logo.png": "/static/media/Scape_logo.dc0c143c.png",
     "static/media/being_five.png": "/static/media/being_five.0777b2e4.png",
     "static/media/being_flying.png": "/static/media/being_flying.ff297c47.png",
@@ -31,12 +31,13 @@
     "static/media/nest_of_swarm.png": "/static/media/nest_of_swarm.0c781b56.png",
     "static/media/scape_back_logo.png": "/static/media/scape_back_logo.021c6af4.png",
     "static/media/smoldering_volcanoe.png": "/static/media/smoldering_volcanoe.a3267d95.png",
-    "static/media/spike.png": "/static/media/spike.da0d408c.png"
+    "static/media/spike.png": "/static/media/spike.da0d408c.png",
+    "static/media/waterfall_logo.png": "/static/media/waterfall_logo.26b9e18a.png"
   },
   "entrypoints": [
     "static/js/runtime-main.7bb332b4.js",
-    "static/js/2.81c49d79.chunk.js",
-    "static/css/main.a4083878.chunk.css",
-    "static/js/main.8b71036c.chunk.js"
+    "static/js/2.0e41dc1d.chunk.js",
+    "static/css/main.ba46922f.chunk.css",
+    "static/js/main.b5d08330.chunk.js"
   ]
 }
