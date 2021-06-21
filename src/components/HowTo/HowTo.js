@@ -47,7 +47,7 @@ class About extends React.Component {
     displayVocab() {
       if (this.state.showVocab) {
         return (
-          <div className={"Termonology"}>
+          <div className={"Terminology"}>
             <ul>
               <li> Exhaust = "Tap"</li>
               <li> Harvested = "Sac or use"</li>
@@ -63,7 +63,7 @@ class About extends React.Component {
               <li>Recycle = "shuffle your hand into your deck and draw that many cards." </li>
               <li>  / = "add to the stack" or play card with forward order, completing the sequence</li>
               <li>  
-                  <h1>Deck proxy (Mtg-to-Scape)</h1>
+                  <h2>Deck proxy (Mtg-to-Scape)</h2>
                    <div className = {"Deck_Container"}>
                      <ul>
                     {rules.DECK_TO_MTG.map((card, index) =>{
@@ -76,22 +76,26 @@ class About extends React.Component {
                     })}
                     </div>
 
-                    <h3>Total Price of whole Deck $3.28</h3>
+                    <h3> Deck $3.28</h3>
 
              
 
               </li>
   
             </ul>
+            <div className = {"Mobile"}>
             <button
               onClick={(e) => {
                 this.setState({ showVocab: !this.state.showVocab });
               }}
               className={"VocabBtn"}
             >
+            
               {"Hide Terminology"}
             </button>
+            </div>
           </div>
+
         );
       } else {
         return (

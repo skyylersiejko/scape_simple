@@ -3,6 +3,8 @@
  
   font-family: "Varela Round", sans-serif;
   overflow-x: hidden;
+  overflow-y: hidden;
+  margin-top:-25px; /*dont know what this is*/
   
  
 }
