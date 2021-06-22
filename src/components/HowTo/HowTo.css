@@ -9,10 +9,16 @@
     margin-top: 3%;
     color: rgba(214, 195, 73);
     font-family: 'Press Start 2P', cursive;
+    
  
 
   
   }
+  ul{
+    list-style: none;
+  }
+
+ 
 
   .Terminology{
    display:flex;
@@ -67,10 +73,10 @@
   .Deck_Container{
  
     display:flex;
-    flex-direction:row;
+    flex-direction:column;
     flex-wrap:wrap;
- 
-   
+    height:50vh;
+
   }
 
   .Mobile{
@@ -81,10 +87,12 @@
   }
 
   .Small_Card{
-    width:0px;
+    display:flex;
+    flex-wrap:wrap;
     height:0px;
 
     padding: 50px;
+    transform:scale(0.5);
   }
 
 
@@ -126,21 +134,11 @@ and (-webkit-device-pixel-ratio :3) {
       flex-direction:column;
       flex-wrap:wrap;
       font-size:12px;
-  
-     
-    
-     
-     
-      
-   
    
   }
 
-  .Small_Card{
-    max-width:375px;
-    
-  
-  }
+ 
+
 
   .Term{
     display:flex;

@@ -35,17 +35,17 @@ class Cards extends React.Component {
                         }}
                       />
                         <div className = {"SubBox"}>
-                          <h2>{card.name} </h2>
+                          <h4>{card.name} </h4>
                           <h6>@ {card.rules_name}</h6>
-                          <h4 className = {"Important_Text"}>{card.text}</h4>
+                          <h6 className = {"Important_Text"}>{card.text}</h6>
                           
                     
 
                           {(card.type == "Being")? <h3>{card.power+"/"+card.defense}</h3>:null}
                           {(card.type == "Being")? <h3>Nourish</h3>:null}
                           {(card.type == "Being")? <h3>Cultivate</h3>:null}
-                          {(card.name == "Wasp")? <h3>Flying</h3>:null}
-                          {(card.name == "Wasp")? <h3 className = {"Alt_Text"}> Alternate casting: Exhausting 3 landscapes, Exhausting 2 landscapes and discarding a card as an additional cost, Exhausting 2 landscapes and sacrificing a landscape as an additional cost</h3>:null}
+                          {(card.name == "Wasp")? <h6>Flying</h6>:null}
+                          {(card.name == "wasp")? <h6 className = {"Alt_Text"}> Alternate casting: Exhausting 3 landscapes, Exhausting 2 landscapes and discarding a card as an additional cost, Exhausting 2 landscapes and sacrificing a landscape as an additional cost</h6>:null}
 
                       <h4>X{card.amount}</h4>
                     
@@ -94,7 +94,7 @@ class Cards extends React.Component {
                               
 
                               {(card.type == "Spell")? <h3>Study</h3>:null}
-                              {(card.name == "Cancel")? <h3>Exile cancel from your hand and pay its' cost: reselect an ancient.</h3>:null}
+                              {(card.name == "Cancel")? <h6>Exile cancel from your hand and pay its' cost: reselect an ancient.</h6>:null}
                               <h4>X{card.amount}</h4>
                         
                             </div>

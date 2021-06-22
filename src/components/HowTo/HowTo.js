@@ -6,7 +6,9 @@ class About extends React.Component {
     constructor(props) {
       super(props);
       this.state = {
-        showVocab: false
+        showVocab: false,
+        showDeck:false,
+        showCards:false,
       };
 
     }
@@ -43,6 +45,34 @@ class About extends React.Component {
         return <div key = {index}>{child}</div>;
       });
     }
+
+    displayDeck(){
+      return (<div>
+        <h2>Deck proxy (Mtg-to-Scape)</h2>
+        <div className = {"Deck_Container"}>
+          <ul>
+            {rules.DECK_TO_MTG.map((card, index) =>{
+              return <li  key = {index}>{card}</li>
+            })}
+          </ul>
+
+          <button
+              onClick={(e) => {
+                this.setState({ showCards: !this.state.showCards });
+              }}
+              className={"VocabBtn"}
+            >{(this.state.showCards)? <div>hide card Images</div>:<div>show card images</div>}</button>
+
+            {(this.state.showCards)? rules.PROXY_IMAGES.map((image, index) =>{
+            return <div className = {"Small_Card"}><img src = {image} /></div>
+            }):null}
+       </div>
+
+       <h3> Deck Cost: $3.28</h3>
+
+</div>
+)
+    }
   
     displayVocab() {
       if (this.state.showVocab) {
@@ -62,25 +92,7 @@ class About extends React.Component {
               <li> Yard = "discard pile"</li>
               <li>Recycle = "shuffle your hand into your deck and draw that many cards." </li>
               <li>  / = "add to the stack" or play card with forward order, completing the sequence</li>
-              <li>  
-                  <h2>Deck proxy (Mtg-to-Scape)</h2>
-                   <div className = {"Deck_Container"}>
-                     <ul>
-                    {rules.DECK_TO_MTG.map((card, index) =>{
-                      return <li  key = {index}>{card}</li>
-                    })}
-                    </ul>
-
-                    {rules.PROXY_IMAGES.map((image, index) =>{
-                      return <div className = {"Small_Card"}><img src = {image} /></div>
-                    })}
-                    </div>
-
-                    <h3> Deck $3.28</h3>
-
              
-
-              </li>
   
             </ul>
             <div className = {"Mobile"}>
@@ -122,6 +134,18 @@ class About extends React.Component {
           <div className={"MiddleText"}>
                We are currently play testing and starting development on the digital version of the game in Unity. email us if you would like to purchase a paper copy of Scape.
             
+            
+            
+               <button
+              onClick={(e) => {
+                this.setState({ showDeck: !this.state.showDeck });
+              }}
+              className={"VocabBtn"}
+            >deck proxy</button>
+            
+            
+            
+              {(this.state.showDeck)?this.displayDeck():null}
                <div style = {{color: "white", fontStyle:"bold", fontWeight: "bold", fontSize:"18px", textAlign:"center", padding:"10px"  }}>scapedcg@gmail.com</div>
   
           </div>
