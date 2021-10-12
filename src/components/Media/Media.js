@@ -9,8 +9,8 @@ class Media extends React.Component {
     super(props);
     this.state = {
       opts: {
-        height: '500px',
-        width: '500px',
+        height: 'auto',
+        width: 'auto',
         playerVars: {
           // https://developers.google.com/youtube/player_parameters
           autoplay:0,

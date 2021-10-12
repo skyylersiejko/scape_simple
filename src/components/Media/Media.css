@@ -1,20 +1,10 @@
 
 
 
-
-@media only screen 
-and (min-device-width : 375px) 
-and (max-device-width : 812px)
-and (-webkit-device-pixel-ratio : 3) { 
+.Media{
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    margin:auto;
    
-        .Introduction{
-            width: auto;
-            height: auto;
-            background-color:red;
-
-        }
-
-  
-
-  
 }

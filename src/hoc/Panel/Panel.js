@@ -21,11 +21,11 @@ class Main extends React.Component {
             <div className = {"LeftPanel"}>
             <a className = {"Download"} href={scape_download} download>Download the Play Kit</a>
            
-            <Media type = {"intro"}/>
+            <Media type = {"Intro"}/>
         </div>
        <img className = {"Picture"} src = {Picture}/>
         <div className = {"RightPanel"}>
-        <div className = {"SubText"}>More Updates Coming Soon!</div>
+        <div className = {"SubText"}>How To Play</div>
         <Media type = {"youtube"}/>
         </div>
      
