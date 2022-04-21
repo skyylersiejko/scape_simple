@@ -28,37 +28,4 @@
 
 
 
-/*MEDIA===========================*/
-/*IPhone-X*/
-@media only screen 
-and (min-device-width : 375px) 
-and (max-device-width : 812px)
-and (-webkit-device-pixel-ratio :3) { 
 
-.Main {
-  display: flex;
-  flex-direction: column;
- 
-  background-color: rgba(51, 0, 51);
-  height:100%;
-  width:100vw;
-  justify-content:center;
-
- 
-}
-.Main_Title {
-  display: flex;
-  justify-content: center;
- 
-}
-
-.Banner {
-  background-color: rgba(61, 61, 61, 0.5);
-  border-radius: 1px;
-  box-shadow: 0px 3px 10px black;
-}
-
-  
-
-  
-}

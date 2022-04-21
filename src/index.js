@@ -7,16 +7,16 @@ import App from "./App";
 const rootElement = document.getElementById("root");
 
 
-const config = {
-  apiKey: "AIzaSyDelGmzr0L8TwJabvejGy0MyvQKdx2rvPU",
-  authDomain: "scapesimple.firebaseapp.com",
-  databaseURL: "https://scapesimple.firebaseio.com",
-  projectId: "scapesimple",
-  storageBucket: "scapesimple.appspot.com",
-  messagingSenderId: "574011483224",
-  appId: "1:574011483224:web:28875aa2edfd4506bc962d",
-  measurementId: "G-EC56BZ6NRZ"
+const firebaseConfig = {
+  apiKey: "AIzaSyBfQeHwVthluCeywDTktpdzF4_FVYTejVs",
+  authDomain: "scape-fc6ca.firebaseapp.com",
+  projectId: "scape-fc6ca",
+  storageBucket: "scape-fc6ca.appspot.com",
+  messagingSenderId: "163782063815",
+  appId: "1:163782063815:web:7d4d226f7f65ea2cc630e2",
+  measurementId: "G-P658D8D3XQ"
 };
+
 
 firebase.initializeApp(config);
 

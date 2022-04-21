@@ -44,8 +44,8 @@
 .Text {
 
   font-size:calc(12px + 1.0vw);
-  padding: 10px;;
-  line-height: 30px;
+  padding: 10px;
+  line-height: 40px;
   display: flex;
   justify-content: center;
   font-style: bold;
