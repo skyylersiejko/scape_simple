@@ -18,16 +18,7 @@ class Main extends React.Component {
   render() {
     return (
         <div className = {"Panel"}>
-            <div className = {"LeftPanel"}>
-            <a className = {"Download"} href={scape_download} download>Download the Play Kit</a>
-           
-            <Media type = {"Intro"}/>
-        </div>
-       <img className = {"Picture"} src = {Picture}/>
-        <div className = {"RightPanel"}>
-        <div className = {"SubText"}>How To Play</div>
-        <Media type = {"youtube"}/>
-        </div>
+        
      
       
        </div>
@@ -36,3 +27,12 @@ class Main extends React.Component {
 }
 
 export default Main;
+
+
+/*
+
+<a className = {"Download"} href={scape_download} download>Download the Play Kit</a>
+<img className = {"Picture"} src = {Picture}/>
+ <Media type = {"youtube"}/>
+
+*/

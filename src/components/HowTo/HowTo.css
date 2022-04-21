@@ -2,13 +2,17 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     /**background-color: rgba(59, 57, 57, 0.75);**/
     border-radius: 5px;
-  
-    margin:auto;
+    min-width: 100vw;
+    margin-right:50%;;
+   
     margin-top: 3%;
-    color: rgba(214, 195, 73);
+    color: rgba(214, 195, 73, 0.8);
     font-family: 'Press Start 2P', cursive;
+    font-size:auto;
+   
     
  
 
@@ -23,6 +27,7 @@
   .Terminology{
    display:flex;
    margin:auto;
+ 
   }
   
   
@@ -31,9 +36,8 @@
   .Info_Title {
     
     text-align: center;
- 
-    font-size: 45px;
     color: yellow;
+    font-size:calc(12px + 1.0vw);
     
     border: 0px solid rgba(61, 61, 61, 0.9);
     box-shadow: inset 0 0 10px #000000;
@@ -50,18 +54,20 @@
 
 
   .MiddleText{
+    font-size:calc(12px + 1.0vw);
     display:flex;
     flex-direction: column;
     font-size: 18px;
-  padding: 30px;
-  line-height: 30px;
-  display: flex;
-  justify-content: center;
-  font-style: bold;
-  text-align: center;
-  font-family: 'Play', sans-serif;
-  background-color: rgba(61, 61, 61, 0.4);
-  box-shadow: inset 0 0 5px #000000;
+    padding: 30px;
+    line-height: 30px;
+    display: flex;
+    justify-content: center;
+    font-style: bold;
+    text-align: center;
+    font-family: 'Play', sans-serif;
+    background-color: rgba(61, 61, 61, 0.4);
+    box-shadow: inset 0 0 5px #000000;
+  
 
 
 
@@ -75,15 +81,14 @@
     display:flex;
     flex-direction:column;
     flex-wrap:wrap;
-    height:50vh;
-
+    
+    
   }
 
   .Mobile{
     display:flex;
     flex-direction:column;
-  
-    max-height:200px;
+   
   }
 
   .Small_Card{
@@ -93,6 +98,7 @@
 
     padding: 50px;
     transform:scale(0.5);
+   
   }
 
 
@@ -105,94 +111,7 @@
   }
 
 
-@media only screen 
-and (min-device-width : 375px) 
-and (max-device-width : 812px)
-and (-webkit-device-pixel-ratio :3) { 
 
-  .HowTo {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width:375px;
-  
-    /**background-color: rgba(59, 57, 57, 0.75);**/
-    border-radius: 5px;
-  
-    margin:auto;
-    color: rgba(214, 195, 73);
-    font-family: 'Press Start 2P', cursive;
- 
-
-    
-  }
-
-
-
-  .Deck_Container{  
-      display:flex;
-      flex-direction:column;
-      flex-wrap:wrap;
-      font-size:12px;
-   
-  }
-
- 
-
-
-  .Term{
-    display:flex;
-    flex-direction:column;
-    justify-content: center;
-    margin:auto;
-    max-width: 375px;
-  }
-
-  .VocabBtn{
-   
-    font-size:12px;
-    border-radius: 5px;
-  
-   
-  }
-  .Terminology{
-  
-    display:flex;
-    flex-direction: column-reverse;
-    margin:auto;
-  
-
-  }
-  .Mobile{
-  
-   display:flex;
-   flex-direction:column; 
-    border-radius: 5px;
-   
-    max-height:812px;
-    margin:auto;
-   
-  
-   
-  }
-
-  .Scroll{
-   
-    padding:10px;
-    max-width:375px;
-    font-size:12px;
-    display:flex;
-    flex-direction: column;
-    
-   
-  }
-
-
-
-
-
-
-}
   
  
  

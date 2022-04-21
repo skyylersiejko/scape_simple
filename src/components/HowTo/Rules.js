@@ -25,7 +25,7 @@ const rules = {
     "EACH player draws a card on each turn.",
     "You may only cast non-being spells with Will-Power",
     "Beings may attack the first turn played",
-    "You can only cast being spells by exauhsting landscapes",
+    "You can only cast being spells by exhausting landscapes",
     "If you have not played a landscape in 3 consecutive turns, you may search for a landscape and play it harvested on your end step.(players must keep physical evidence of the count)",
     "If you have not casted a spell for 3 consecutive turns, you may draw a card on your next replenish step..(players must keep physical evidence of the count)"
   ],
@@ -35,7 +35,7 @@ const rules = {
   GENERAL: [
     "You may cast non-being spells anytime, and only with Will-Power.",
     "All non-being spells can be played anytime a player has priority.",
-    "You may cast being only by exauhsting landscapes.",
+    "You may cast being only by exhausting landscapes.",
     "You may sacrifice landscapes anytime.",
     "Sacrifice/Harvest a landscape: gain 1 Will-Power. (you may do this as a response, and it cannot be responded to as an action and does not use the stack)",
     "You may discard 3 cards and draw a card anytime",
@@ -85,7 +85,7 @@ const rules = {
     "being 5/spike/grow: (create a [being 2])",
     "ignite/ignite/grow: (destroy target players non-ancient landscape)",
     "flyer/cancel/ignite: (create a 3/1 flyer)",
-    "grow/grow(controlled by different players): negates reselecting an ancient.",
+    "grow/grow(controlled by different players): negates re-selecting an ancient.",
     "grow/cancel: Each player draws a card."
   ],
 

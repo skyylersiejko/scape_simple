@@ -23,7 +23,7 @@ class Cards extends React.Component {
                 <React.Fragment key = {index} >
                   <div  className = {"Card_Container"}>
                     
-                  {(card.type === "Being")?
+                  {(card.type === "Being")?/* Being  */
                   <div className = {"Card_Being"}>
                     <div className = {"Mobile"}>
                       <h1>{card.type}</h1>
@@ -51,7 +51,7 @@ class Cards extends React.Component {
                     
                       </div>
                     </div>
-                  </div>:
+                  </div>: /* Ancient */
                       (card.type === "Ancient")?
                       
                       <div className = {"Card_Ancient"}>
@@ -76,7 +76,7 @@ class Cards extends React.Component {
                           </div>
                         </div>
                       </div>:
-                        (card.type === "Spell")?
+                        (card.type === "Spell")? /* Spell  */
                       <div className = {"Card_Spell"}>
                         <div className = {"Mobile"}>
                           <h1>{card.type}</h1>
