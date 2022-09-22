@@ -46,7 +46,7 @@ class About extends React.Component {
              Instead of having a prerelease weekend for new cards; we will have release events for new Rituals.
              we see Ritual based gameplay as the next evolution of competitive card games. 
              The Scape engine is more focused on competition gameplay and is built to support a tournament enviroment.
-             We hope to release a digital version of the game soon. (end 2021)
+             We hope to release a digital version of the game soon.
 
 
         </div>
