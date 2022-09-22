@@ -1,6 +1,7 @@
 import rules from "./Rules";
 import React from "react";
 import "./HowTo.css"
+import Media from "../Media/Media";
 
 class About extends React.Component {
     constructor(props) {
@@ -158,9 +159,10 @@ class About extends React.Component {
               How to Play
               
               <div style = {{color: "white", fontStyle:"bold", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"10px"  }}>(the rules assume you are familiar with other TCG(s))</div>
-  
+              
               
               </div>
+              <Media type = {"youtube"}/>
           <div className = {"Term"} >
             {this.displayVocab()}
             <div className={"Scroll"}>{this.displayRules()}</div>
