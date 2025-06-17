@@ -1,176 +1,126 @@
-import rules from "./Rules";
+// src/components/HowTo/HowTo.js
 import React from "react";
-import "./HowTo.css"
+import rules from "./Rules";
+import "./HowTo.css";
 import Media from "../Media/Media";
 
-class About extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = {
-        showVocab: false,
-        showDeck:false,
-        showCards:false,
-      };
-
-    }
-  
-    componentDidMount() {
-      // console.log(rules);
-    }
-  
-    displayRules() {
-      let rules_text = [],
-        headers = [],
-        result = [];
-      Object.values(rules).map((rule) => {
-        return rules_text.push(
-          <p>
-             
-            {rule.map((child, index ) => {
-              return <li key = {index}>{child}</li>;
-            })}
-          </p>
-        );
-      });
-  
-      Object.keys(rules).map((rule) => {
-        headers.push(<h1 className={"Sub_Title"}>{rule}</h1>);
-      });
-  
-      for (let i = 0; i < headers.length; i++) {
-        result.push(headers[i]);
-        result.push(rules_text[i]);
-      }
-  
-      return result.map((child, index ) => {
-        return <div key = {index}>{child}</div>;
-      });
-    }
-
-    displayDeck(){
-      return (<div>
-        <h2>Deck proxy (Mtg-to-Scape)</h2>
-        <div className = {"Deck_Container"}>
-          <ul>
-            {rules.DECK_TO_MTG.map((card, index) =>{
-              return <li  key = {index}>{card}</li>
-            })}
-          </ul>
-
-          <button
-              onClick={(e) => {
-                this.setState({ showCards: !this.state.showCards });
-              }}
-              className={"VocabBtn"}
-            >{(this.state.showCards)? <div>hide card Images</div>:<div>show card images</div>}</button>
-
-            {(this.state.showCards)? rules.PROXY_IMAGES.map((image, index) =>{
-            return <div className = {"Small_Card"}><img src = {image} /></div>
-            }):null}
-       </div>
-
-       <h3> Deck Cost: $3.28</h3>
-
-</div>
-)
-    }
-  
-    displayVocab() {
-      if (this.state.showVocab) {
-        return (
-          <div className={"Terminology"}>
-            <ul>
-              <li> Exhaust = "Tap"</li>
-              <li> Harvested = "Sac or use"</li>
-              <li>
-                Ritual = sequence of actions that must occur to create an event
-              </li>
-              <li> Being = "creature"</li>
-              <li> Ancient = "Commander"</li>
-              <li> Will-Power (WP) = "life"</li>
-              <li> Landscape = "basic land"</li>
-              <li> Replenish = "untap and upkeep"</li>
-              <li> Yard = "discard pile"</li>
-              <li>Recycle = "shuffle your hand into your deck and draw that many cards." </li>
-              <li>  / = "add to the stack" or play card with forward order, completing the sequence</li>
-             
-  
-            </ul>
-            <div className = {"Mobile"}>
-            <button
-              onClick={(e) => {
-                this.setState({ showVocab: !this.state.showVocab });
-              }}
-              className={"VocabBtn"}
-            >
-            
-              {"Hide Terminology"}
-            </button>
-            </div>
-          </div>
-
-        );
-      } else {
-        return (
-          <button
-            onClick={(e) => {
-              this.setState({ showVocab: !this.state.showVocab });
-            }}
-            className={"VocabBtn"}
-          >
-            {"Show Terminology"}
-          </button>
-        );
-      }
-    }
-  
-    render() {
-      return (
-        <div className={"HowTo"}>
-    
-  
-  
-  
-         {/**  <div className={"Info_Title"}>Update(s)</div>**/}
-          <div className={"MiddleText"}>
-               We are currently play testing and starting development on the digital version of the game in Unity. email us if you would like to purchase a paper copy of Scape.
-            
-            
-            
-               <button
-              onClick={(e) => {
-                this.setState({ showDeck: !this.state.showDeck });
-              }}
-              className={"VocabBtn"}
-            >deck proxy</button>
-            
-            
-            
-              {(this.state.showDeck)?this.displayDeck():null}
-               <div style = {{color: "white", fontStyle:"bold", fontWeight: "bold", fontSize:"18px", textAlign:"center", padding:"10px"  }}>scapedcg@gmail.com</div>
-  
-          </div>
-  
-          
-  
-  
-          <div className={"Info_Title"}>
-              
-              How to Play
-              
-              <div style = {{color: "white", fontStyle:"bold", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"10px"  }}>(the rules assume you are familiar with other TCG(s))</div>
-              
-              
-              </div>
-              <Media type = {"youtube"}/>
-          <div className = {"Term"} >
-            {this.displayVocab()}
-            <div className={"Scroll"}>{this.displayRules()}</div>
-          </div>
-          
-        </div>
-      );
-    }
+class HowTo extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showVocab: false,
+      showDeck: false,
+      showCards: false,
+    };
   }
-  
-  export default About;
+
+  displayRules() {
+    const headers = Object.keys(rules);
+    return headers.map((title, i) => (
+      <section key={i}>
+        <h2 className="Sub_Title">{title}</h2>
+        <ul className="Rules_List">
+          {rules[title].map((item, j) => (
+            <li key={j}>{item}</li>
+          ))}
+        </ul>
+      </section>
+    ));
+  }
+
+  displayDeck() {
+    return (
+      <section className="Deck_Section">
+        <h2>Deck Proxy (MTG-to-Scape)</h2>
+        <div className="Deck_Container">
+          <ul>
+            {rules.DECK_TO_MTG.map((card, i) => (
+              <li key={i}>{card}</li>
+            ))}
+          </ul>
+          <button
+            className="VocabBtn"
+            onClick={() =>
+              this.setState((s) => ({ showCards: !s.showCards }))
+            }
+          >
+            {this.state.showCards ? "Hide Card Images" : "Show Card Images"}
+          </button>
+          {this.state.showCards && (
+            <div className="Card_Images">
+              {rules.PROXY_IMAGES.map((src, k) => (
+                <img className="Small_Card" key={k} src={src} alt={`card-${k}`} />
+              ))}
+            </div>
+          )}
+        </div>
+        <p className="Deck_Cost">Deck Cost: $3.28</p>
+      </section>
+    );
+  }
+
+  displayVocab() {
+    const terms = [
+      ["Exhaust", "Tap"],
+      ["Harvested", "Sac or use"],
+      ["Ritual", "sequence of actions that must occur to create an event"],
+      ["Being", "creature"],
+      ["Ancient", "Commander"],
+      ["Will-Power (WP)", "life"],
+      ["Landscape", "basic land"],
+      ["Replenish", "untap and upkeep"],
+      ["Yard", "discard pile"],
+      ["Recycle", "shuffle your hand into your deck and draw that many cards."],
+      ["/", "add to the stack or play card with forward order"],
+    ];
+
+    return this.state.showVocab ? (
+      <div className="Terminology">
+        <ul>
+          {terms.map(([term, def], i) => (
+            <li key={i}><strong>{term}:</strong> {def}</li>
+          ))}
+        </ul>
+        <button className="VocabBtn" onClick={() => this.setState({ showVocab: false })}>
+          Hide Terminology
+        </button>
+      </div>
+    ) : (
+      <button className="VocabBtn" onClick={() => this.setState({ showVocab: true })}>
+        Show Terminology
+      </button>
+    );
+  }
+
+  render() {
+    return (
+      <div className="HowTo">
+        <div className="MiddleText">
+          We are play testing and developing the digital version of the game.
+          Email us at scapedcg@gmail.com for a paper copy of Scape.
+          <button
+            className="VocabBtn"
+            onClick={() => this.setState((s) => ({ showDeck: !s.showDeck }))}
+          >
+            Deck Proxy
+          </button>
+          {this.state.showDeck && this.displayDeck()}
+        </div>
+
+        <div className="Info_Title">
+          How to Play
+          <p className="Subtitle">(assumes familiarity with other TCGs)</p>
+        </div>
+
+        <Media type="youtube" />
+
+        <div className="Term">
+          {this.displayVocab()}
+          <div className="Scroll">{this.displayRules()}</div>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default HowTo;

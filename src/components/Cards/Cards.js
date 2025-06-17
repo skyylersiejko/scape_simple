@@ -1,159 +1,67 @@
 import React from "react";
 import "./Cards.css";
-import error_Image from '../../res/scape_back_logo.png'
-import Media from '../Media/Media';
+import error_Image from '../../res/scape_back_logo.png';
 import CardData from '../../CardData';
 
 class Cards extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      show: false,
-    };
-  }
-
   displayCards() {
-   
-      if (CardData) {
-        return (
-          <div className={"Card_Slider"}>
-            <div className = {"Card_Title"}>Cards</div>
-            {Object.values(CardData).map((card, index) => {
-              return (
-                <React.Fragment key = {index} >
-                  <div  className = {"Card_Container"}>
-                    
-                  {(card.type === "Being")?/* Being  */
-                  <div className = {"Card_Being"}>
-                    <div className = {"Mobile"}>
-                      <h1>{card.type}</h1>
-                
-                      <img className = {"Card_Image"}
-                        src={card.image}
-                        onError={(e) => {
-                          e.target.src = error_Image;
-                        }}
-                      />
-                        <div className = {"SubBox"}>
-                          <h4>{card.name} </h4>
-                          <h6>@ {card.rules_name}</h6>
-                          <h6 className = {"Important_Text"}>{card.text}</h6>
-                          
-                    
+    if (!CardData) {
+      return <h1>No cards added</h1>;
+    }
+    return (
+      <div className="Card_Slider">
+        {Object.values(CardData).map((card, idx) => (
+          <div className="Card_Container" key={idx}>
+            <div className="Card_Info">
+              {/* Card type with dynamic color class */}
+              <h1 className={`Card_Type ${card.type}`}>{card.type}</h1>
+              {/* Card name slightly larger */}
+              <h2>{card.name}</h2>
+              <h6>@{card.rules_name}</h6>
+              <p className="Important_Text">{card.text}</p>
 
-                          {(card.type == "Being")? <h3>{card.power+"/"+card.defense}</h3>:null}
-                          {(card.type == "Being")? <h3>Nourish</h3>:null}
-                          {(card.type == "Being")? <h3>Cultivate</h3>:null}
-                          {(card.name == "Wasp")? <h6>Flying</h6>:null}
-                          {(card.name == "wasp")? <h6 className = {"Alt_Text"}> Alternate casting: Exhausting 3 landscapes, Exhausting 2 landscapes and discarding a card as an additional cost, Exhausting 2 landscapes and sacrificing a landscape as an additional cost</h6>:null}
+              {card.type === "Being" && (
+                <>
+                  <h3>{card.power}/{card.defense}</h3>
+                  <h3>Nourish</h3>
+                  <h3>Cultivate</h3>
+                </>
+              )}
+              {card.type === "Ancient" && (
+                <h3>
+                  Sacrifice any time to use the ancient ability. Then, remove the ancient from the game.
+                </h3>
+              )}
+              {card.type === "Spell" && (
+                <>
+                  <h3>Cast a spell anytime</h3>
+                  <h3>Study</h3>
+                </>
+              )}
+              {card.type === "Landscape" && <h3>Evolve</h3>}
 
-                      <h4>X{card.amount}</h4>
-                    
-                      </div>
-                    </div>
-                  </div>: /* Ancient */
-                      (card.type === "Ancient")?
-                      
-                      <div className = {"Card_Ancient"}>
-                        <div className = {"Mobile"}>
-                          <h1>{card.type}</h1>
-                        
-                          <img className = {"Card_Image"}
-                            src={card.image}
-                            onError={(e) => {
-                              e.target.src = error_Image;
-                            }}
-                          />
-                          <div className = {"SubBox"}>
-                            <h2>{card.name} </h2>
-                            <h6>@{card.rules_name}</h6>
-                            <h3 className = {"Important_Text"}>{card.text}</h3>
-                            <h3> sacrifice any time to use the ancient ability. Then, remove the ancient from the game.</h3>
-                            
-                            <h4>X{card.amount}</h4>
-                      
-
-                          </div>
-                        </div>
-                      </div>:
-                        (card.type === "Spell")? /* Spell  */
-                      <div className = {"Card_Spell"}>
-                        <div className = {"Mobile"}>
-                          <h1>{card.type}</h1>
-                          <img className = {"Card_Image"}
-                          src={card.image}
-                          onError={(e) => {
-                            e.target.src = error_Image;
-                          }}
-                          />
-                            <div className = {"SubBox"}>
-                              <h2>{card.name} </h2>
-                              <h6>@{card.rules_name}</h6>
-                              <h3 className = {"Important_Text"}>{card.text}</h3>
-                              <h3> Cast a spell anytime</h3>
-                              
-
-                              {(card.type == "Spell")? <h3>Study</h3>:null}
-                              {(card.name == "Cancel")? <h6>Exile cancel from your hand and pay its' cost: reselect an ancient.</h6>:null}
-                              <h4>X{card.amount}</h4>
-                        
-                            </div>
-                        </div>
-                      </div>:
-                        <div className = {"Card_Landscape"}>
-                          <div className = {"Mobile"}>
-                          <h1>{card.type}</h1>
-                          
-                          <img className = {"Card_Image"}
-                          src={card.image}
-                          onError={(e) => {
-                            e.target.src = error_Image;
-                          }}
-                          />
-                          <div className = {"SubBox"}>
-                            <h2>{card.name} </h2>
-                            <h6>@{card.rules_name}</h6>
-                            <h3 className = {"Important_Text"}>{card.text}</h3>
-                            <h3> Cast a spell anytime</h3>
-                            {(card.type == "Landscape")? <h3>Evolve</h3>:null}
-                            <h4>X{card.amount}</h4>
-
-                          </div>
-                        </div>
-                      </div>
-                    
-                    
-
-
-                      
-
-
-            }
-            
+              <h4>X{card.amount}</h4>
             </div>
-                </React.Fragment>
-              );
-            })}
+
+            <img
+              className="Card_Image"
+              src={card.image}
+              alt={card.name}
+              onError={(e) => { e.target.src = error_Image; }}
+            />
           </div>
-        );
-      } else {
-        return <h1>no cards added</h1>;
-      }
-   
+        ))}
+      </div>
+    );
   }
 
   render() {
     return (
-      <div className={"Card"}>
-        
-        <div className = {"ScrollBox"}>
+      <div className="Card">
+        <div className="ScrollBox">
           {this.displayCards()}
         </div>
-        
-      
-       
-        </div>
-   
+      </div>
     );
   }
 }

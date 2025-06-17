@@ -138,7 +138,7 @@ const rules = {
     "4x Cancel (3)",
     "4x Natural Connection (3) *grow",
     "4x Flame Lash (4) *spike",
-    "5X Ancients  *draw your own ;)"
+    "5X Ancients  *draw your own..."
 
   ],
 

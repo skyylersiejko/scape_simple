@@ -3,29 +3,38 @@
   flex-direction: column;
   background-color: rgba(51, 0, 51);
   font-family: 'Press Start 2P', cursive;
-
- 
-  
- 
 }
+
 .Main_Title {
   display: flex;
-  justify-content: center;;
- 
-
+  justify-content: center;
 }
 
 .Banner {
   background-color: rgba(61, 61, 61, 0.5);
-
   border-radius: 1px;
-
-  box-shadow: 0px 3px 10px black;
-  
-
+  box-shadow: 0 3px 10px black;
 }
 
+/* Tablet / small-desktop */
+@media (max-width: 768px) {
+  .Main {
+    padding: 0 1rem;
+  }
+  .Banner {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0;
+  }
+  .Banner .Main_Title img {
+    width: 80%;
+    height: auto;
+  }
+}
 
-
-
-
+/* Mobile portrait */
+@media (max-width: 480px) {
+  .Banner {
+    padding: 0.5rem 0;
+  }
+}

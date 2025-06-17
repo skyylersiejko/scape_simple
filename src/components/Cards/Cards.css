@@ -1,411 +1,103 @@
+/* Vertical stack & centering */
 .Card_Slider {
- 
-  animation-name: draw-slide;
-  animation-duration: 1s;
-  display:flex;
+  display: flex;
   flex-direction: column;
- 
-  justify-content: center ;
-  box-shadow: inset 0 0 5px #000000;
- 
-  ;
-
+  align-items: center;
+  gap: 2rem;
+  padding: 1rem 0;
 }
 
-@keyframes draw-slide {
-  from {
-    margin-left: 100%;
-    
-  }
-
-  to {
-    margin-left:0%;
-   
-  }
-}
-
-.Card {
-  color:white;  
-  display:flex;
-
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  word-wrap: break-word;
-  margin:auto;
-  background-color:rgba(61, 61, 61, 0.75);
-  font-family: 'Press Start 2P', cursive;
-  
-
-
-
-
-  
-}
-.Card_Image {
-  margin-left:80%;
-  
-}
-
-.Card_Block {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  grid-auto-rows: minmax(100px, auto);
-  font-size:calc(12px + 1.0vw);
-  
-}
-.one {
-  grid-column: 1 / 3;
-  grid-row: 1;
-  background-color:blue;
-}
-.two {
-  grid-column: 2 / 4;
-  grid-row: 1 / 3;
-  background-color:yellow;
-
-}
-.three {
-  grid-column: 1;
-  grid-row: 2 / 5;
-  background-color:red;
-}
-.four {
-  grid-column: 3;
-  grid-row: 3;
-  background-color:green;
-}
-.five {
-  grid-column: 2;
-  grid-row: 4;
-  background-color:orange;
-}
-.six {
-  grid-column: 3;
-  grid-row: 4;
-}
-
-
-
-
-
-
-
-.CardBtn{
-  color: rgba(214, 195, 73);
-  background-color: rgba(61, 61, 61, 0.75);
-  max-width: auto;
-  height: 50px;
-
- 
-
-}
-
-img{
-max-width:400px;
-max-height:400px;
-display:flex;
-z-index:200;
-
-}
-
-
-.Card_Title {
-  color: white;
-  font-size: 40px;
-
-  background-color: rgba(61, 61, 61, 0.5);
-  text-align:center;
-  font-family: 'Press Start 2P', cursive;
-
- 
-  
-}
-
-.Card_Being, .Card_Ancient, .Card_Spell, .Card_Landscape{
-  background-color: rgb(121, 85, 72, 0.5 ); 
-
-  box-shadow: 0px 3px 3 px black;
-  border-radius: 5px ;
-  border:2px solid rgba(61, 61, 61, 0.75);  
-  font-family: 'Press Start 2P', cursive;
-
-  margin:auto;
+/* Each card: two columns (info + image) */
+.Card_Container {
+  display: flex;
+  width: 75%;
   max-width: 800px;
-  min-width: 400px;
-  height:500px;
-  box-shadow: inset 0 0 5px #000000;
-
-
-}
-
-.SubBox{
-padding:10%;
-padding-top:0;
-padding-bottom:0;
-
-margin-top:-5%;
-z-index:0;
-background-color:rgba(61, 61, 61, 0.75); 
-
-
- 
- 
- 
-
-}
-
-@media only screen 
-and (min-device-width : 375px) 
-and (max-device-width : 812px)
-and (-webkit-device-pixel-ratio :3) { 
-  .SubBox{
-    display:flex;
-    flex-direction:column;
-    flex-wrap: wrap;
-    margin-top:-100%;
-    margin-right:auto;
-    margin-right:auto;
-    max-height:400px;
-  
-    transform:scale(0.8)
-  }
-
-  img{
-  
-   
-
-    
-    }
-
-
-  .Card_Being, .Card_Ancient, .Card_Spell, .Card_Landscape{
-    background-color: rgb(121, 85, 72, 0.5 ); 
-    
-
-    box-shadow: 0px 3px 3 px black;
-    border-radius: 5px ;
-    border:2px solid rgba(61, 61, 61, 0.75);  
-    font-family: 'Press Start 2P', cursive;
-   
-    
-  
-    
-   
-    box-shadow: inset 0 0 5px #000000;
-    
-
-  }
-
-
-
-
-  h3{
-    font-size: 12px;
-  }
-
-  
-
-}
-
-
-
-
-
-h1{
-  background-color: rgba(61, 61, 61, 0.5);
-  max-height: 50px;
+  background-color: rgba(61, 61, 61, 0.75);
   border-radius: 10px;
-  padding: 10px;
-
-  text-align:center;
+  overflow: hidden;
+  box-shadow: inset 0 0 5px #000;
 }
 
+/* Left column: all text */
+.Card_Info {
+  flex: 1;
+  padding: 1rem;
+  color: white;
+  font-family: 'Press Start 2P', cursive;
+}
 
+/* Card type header (smaller than name) */
+.Card_Info .Card_Type {
+  margin: 0 0 0.5rem;
+  font-size: calc(8px + 1vw);
+}
+/* Colors by type */
+.Card_Type.Being     { color: green; }
+.Card_Type.Ancient   { color: lightblue; }
+.Card_Type.Spell     { color: lightgoldenrodyellow; }
+.Card_Type.Landscape { color: lime; }
 
-
-.Card_Ancient{
-  background-color:rgba(103, 58, 183, 0.5);
-
-
+/* Card name header */
+.Card_Info h2 {
+  margin: 0.25rem 0;
+  font-size: calc(14px + 1vw);
  
 
-
 }
 
-.Card_Being{
-  background-color: rgba(74, 54, 36, 0.5);
+.Card_Info h6 {
+  margin: 0.25rem 0;
+  font-size: 12px;
+  color: rgba(214, 195, 73, 0.8);
+}
+
+.Card_Info .Important_Text {
+  margin: 0.75rem 0;
+  font-size: 14px;
+  color: lightcyan;
   
-
-
 }
 
-
-
-
-.Card_Spell{
-  background-color: rgb(9, 132, 227, 0.5  );
-
-
-
+.Card_Info h3 {
+  margin: 0.25rem 0;
+  font-size: 12px;
+  color: yellow;
 }
 
-
-.Card_Landscape{
-  background-color:rgba(139, 195, 74, 0.5);
- 
+.Card_Info h4 {
+  margin-top: 1rem;
+  font-size: 14px;
 }
 
-
-.Card_Container{
-
-
-
-  padding:10px;
-  
-
+/* Right column: the art */
+.Card_Image {
+  flex-shrink: 0;
+  width: 180px;
+  object-fit: contain;
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
 }
 
-.Important_Text{
-  color: rgba(214, 195, 73);
-}
-
-.Alt_Text{
-  color: red;
-  font-size:12px;
-}
-
-
-
-
+/* Scroll wrapper around all cards */
 .ScrollBox {
-  margin-top: 2%;;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  min-height: 580px;
-  border-radius: 10px;
-  position: relative;
+  overflow-y: auto;
+  width: 100%;
 }
 
-
-
-.ScrollBox::-webkit-scrollbar {
-  width: 1em;
-  background-color: rgba(61, 61, 61, 0.5);
-  
+/* Responsive: narrow screens stack */
+@media (max-width: 768px) {
+  .Card_Container { width: 90%; }
 }
-
-.ScrollBox::-webkit-scrollbar-track {
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-}
-
-.ScrollBox::-webkit-scrollbar-thumb {
-  background-color: rgba(95, 86, 86, 0.7);
-  outline: 1px solid black;
-}
-
-.Mobile{
- 
-}
-
-
-
-
-/*MEDIA===========================*/
-/*IPhone-X*/
-@media only screen 
-and (min-device-width : 375px) 
-and (max-device-width : 812px)
-and (-webkit-device-pixel-ratio : 3) { 
-
-  .ScrollBox {
-    
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height:auto;;
-    width:auto;
-    border-radius: 10px;
+@media (max-width: 480px) {
+  .Card_Container {
+    flex-direction: column;
+    align-items: center;
   }
-  
-  
-  
-
-  .Card_Container:hover{
-    z-index:500;
-    transform:scale(1.2);
-   
-   
-  
+  .Card_Info, .Card_Image {
+    width: 100%;
+    text-align: center;
   }
-
-  .Mobile{
-    display: flex;
-    margin:auto;
-    flex-direction:row;
-  
-
-    border-radius:5px;
-    justify-content: center;
-   
-  }
- 
-
-  .Card_Being, .Card_Ancient, .Card_Spell, .Card_Landscape{
-   
-    display: flex;
-    justify-content: center;
-    flex-direction:column;
-    margin:auto;
-   
-    background-color:transparent;
-    border:0px solid rgba(61, 61, 61, 0.75);  
-  
-    
-  
-  
-  }
-  .Important_Text{
-    color: rgba(214, 195, 73);
-    padding:10px;
-  
-  }
-
-  .Card_Ancient{
-    background-color:rgba(103, 58, 183, 0.5)
-    
-  
-  
-  }
-  
-  
-  .Card_Spell{
-    background-color: rgb(9, 132, 227, 0.5  );
-  
-  
-  
-  }
-  
-  
-  .Card_Landscape{
-    background-color:rgba(139, 195, 74, 0.5);
-  }
-
-  .Card_Being{
-    background-color: rgba(74, 54, 36, 0.5);
-  }
-
-
-  
   .Card_Image {
-    margin-left:0%;
-    z-index:0;
-   
-   
+    margin-top: 1rem;
   }
-  
-  
-
-
-  
 }
