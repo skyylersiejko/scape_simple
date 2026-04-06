@@ -1,0 +1,34 @@
+.BotDemoPromo {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0 0.75rem;
+  text-align: center;
+}
+
+.BotDemoPromo_Button {
+  background: rgba(255, 255, 0);
+  border: 2px solid rgba(0, 0, 0, 0.0);
+  color: #2d0f2d;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.BotDemoPromo_Button:hover {
+  box-shadow: 0 0 0 2px rgba(214, 195, 73, 0.6);
+  transform: translateY(-2px);
+}
+
+.BotDemoPromo_Button:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .BotDemoPromo_Button {
+    font-size: 0.65rem;
+  }
+}
