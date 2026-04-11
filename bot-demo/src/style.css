@@ -193,7 +193,7 @@ h3 { font-size: 10px; color: var(--text); }
 .challenge-item { padding: 10px; background: var(--bg3); border: 1px solid var(--purple-light); display: flex; flex-direction: column; gap: 6px; }
 .challenge-from { font-size: 12px; color: var(--text); }
 .challenge-actions { display: flex; gap: 6px; }
-.card { width: 90px; height: 126px; border: 2px solid var(--card-border); background: var(--card-bg); display: flex; flex-direction: column; cursor: pointer; position: relative; transition: all 0.1s; flex-shrink: 0; image-rendering: pixelated; }
+.card { width: 112px; height: 158px; border: 2px solid var(--card-border); background: var(--card-bg); display: flex; flex-direction: column; cursor: pointer; position: relative; transition: all 0.1s; flex-shrink: 0; image-rendering: pixelated; }
 .card:hover { border-color: var(--purple-bright); box-shadow: 0 0 8px var(--purple-light); transform: translateY(-2px); z-index: 10; }
 .card.exhausted { transform: rotate(90deg) !important; opacity: 0.7; margin: 0 20px; }
 .card.selected { border-color: var(--green); box-shadow: var(--glow-green); }
@@ -201,9 +201,9 @@ h3 { font-size: 10px; color: var(--text); }
 .card.blocker { border-color: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
 .card-image { flex: 1; overflow: hidden; background: #0f0030; }
 .card-image img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
-.card-image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
-.card-name { font-size: 7px; font-family: 'Press Start 2P', monospace; color: var(--text); padding: 2px 4px; background: #0a001566; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-stats { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; background: var(--purple-dark); font-size: 9px; }
+.card-image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 35px; }
+.card-name { font-size: 9px; font-family: 'Press Start 2P', monospace; color: var(--text); padding: 2px 4px; background: #0a001566; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-stats { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; background: var(--purple-dark); font-size: 11px; }
 .card-power { color: var(--red); font-weight: bold; }
 .card-toughness { color: var(--green); font-weight: bold; }
 .card-cost { color: var(--gold); }
@@ -347,37 +347,37 @@ h3 { font-size: 10px; color: var(--text); }
 .landscape-zone { display:flex; flex-wrap:wrap; gap:3px; min-height:56px; max-height:110px; overflow-y:auto; padding:4px 6px; background:linear-gradient(180deg, var(--bg3) 0%, #0a0020 100%); border:1px solid var(--green-dark); position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3); }
 .landscape-zone.my-landscape-zone { border-color:var(--green-dark); }
 .my-being-zone, .opp-being-zone { display:flex; flex-wrap:wrap; gap:4px; max-height:150px; overflow-y:auto; padding:4px; background:linear-gradient(180deg, #100028 0%, var(--bg3) 100%); border:1px solid var(--border); position:relative; box-shadow:inset 0 4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4); }
-.my-being-zone { min-height:80px; }
-.opp-being-zone { min-height:140px; }
-.battlefield-zone { display:flex; flex-wrap:wrap; gap:6px; min-height:80px; max-height:150px; overflow-y:auto; padding:6px; background:linear-gradient(180deg, #100028 0%, var(--bg3) 100%); border:1px solid var(--border); box-shadow:inset 0 4px 12px rgba(0,0,0,0.5); }
-.attack-zone { display:flex; flex-wrap:wrap; gap:4px; min-height:60px; max-height:100px; padding:4px; background:#1a000a; border:2px dashed var(--red); }
+.my-being-zone { min-height:100px; }
+.opp-being-zone { min-height:175px; }
+.battlefield-zone { display:flex; flex-wrap:wrap; gap:8px; min-height:100px; max-height:188px; overflow-y:auto; padding:8px; background:linear-gradient(180deg, #100028 0%, var(--bg3) 100%); border:1px solid var(--border); box-shadow:inset 0 4px 12px rgba(0,0,0,0.5); }
+.attack-zone { display:flex; flex-wrap:wrap; gap:5px; min-height:75px; max-height:125px; padding:5px; background:#1a000a; border:2px dashed var(--red); }
 .drop-hint { color:var(--red); font-size:8px; align-self:center; padding:4px; opacity:0.6; }
 .opp-being-col { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 
 /* Landscape zone for player bottom row — larger than opponent's */
-.my-landscape-zone { min-height:80px !important; max-height:160px !important; }
+.my-landscape-zone { min-height:100px !important; max-height:200px !important; }
 
 /* Drag-drop feedback */
 .drag-over { border-color:var(--green) !important; box-shadow:0 0 12px var(--green) !important; background:rgba(0,255,65,0.05) !important; }
 .drag-over-card { border-color:var(--cyan) !important; }
 .dragging { opacity:0.5; transform:scale(0.95); }
-.hand-card { width: 100px; height: 140px; cursor: grab; }
+.hand-card { width: 125px; height: 175px; cursor: grab; }
 .hand-card:active { cursor: grabbing; }
 
 /* Landscape card in zone (player gets larger cards) */
-.landscape-zone .card { width: 50px; height: 72px; }
-.my-landscape-zone .card { width: 68px; height: 96px; }
-.landscape-zone .card .card-name { font-size: 5px; }
-.my-landscape-zone .card .card-name { font-size: 6px; }
+.landscape-zone .card { width: 62px; height: 90px; }
+.my-landscape-zone .card { width: 85px; height: 120px; }
+.landscape-zone .card .card-name { font-size: 6px; }
+.my-landscape-zone .card .card-name { font-size: 7px; }
 .landscape-zone .card .card-dots { display: none; }
 
 /* ── Hand area ─────────────────────────────────────────────────────── */
-.hand-area { padding:14px 8px 10px; background:linear-gradient(180deg, var(--bg2) 0%, #0a001a 100%); border-top:2px solid var(--border); height:185px; flex-shrink:0; transform:perspective(700px) rotateX(-14deg); transform-origin:bottom center; box-shadow:0 -8px 24px rgba(0,0,0,0.5), inset 0 8px 16px rgba(0,0,0,0.3); }
+.hand-area { padding:14px 8px 10px; background:linear-gradient(180deg, var(--bg2) 0%, #0a001a 100%); border-top:2px solid var(--border); height:230px; flex-shrink:0; transform:perspective(700px) rotateX(-14deg); transform-origin:bottom center; box-shadow:0 -8px 24px rgba(0,0,0,0.5), inset 0 8px 16px rgba(0,0,0,0.3); }
 .hand-label { font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); margin-bottom:4px; }
 .hand-cards { display:flex; gap:4px; overflow-x:auto; align-items:flex-end; padding-bottom:2px; height:calc(100% - 18px); }
 
 /* ── WP Circles (floating over field) ──────────────────────────────── */
-.my-wp-circle { position:fixed; bottom:240px; left:50%; transform:translateX(-50%); width:64px; height:64px; border-radius:50%; background:rgba(10,0,26,0.92); border:3px solid var(--gold); display:flex; align-items:center; justify-content:center; z-index:120; box-shadow:0 0 20px rgba(255,215,0,0.45), 0 0 40px rgba(255,215,0,0.2), 4px 4px 0 rgba(0,0,0,0.6); pointer-events:none; }
+.my-wp-circle { position:fixed; bottom:290px; left:50%; transform:translateX(-50%); width:64px; height:64px; border-radius:50%; background:rgba(10,0,26,0.92); border:3px solid var(--gold); display:flex; align-items:center; justify-content:center; z-index:120; box-shadow:0 0 20px rgba(255,215,0,0.45), 0 0 40px rgba(255,215,0,0.2), 4px 4px 0 rgba(0,0,0,0.6); pointer-events:none; }
 .opp-wp-circle { position:relative; flex-shrink:0; width:56px; height:56px; border-radius:50%; background:rgba(26,0,42,0.92); border:3px solid var(--red); display:flex; align-items:center; justify-content:center; z-index:5; box-shadow:0 0 20px rgba(255,45,85,0.45), 0 0 40px rgba(255,45,85,0.2), 4px 4px 0 rgba(0,0,0,0.6); pointer-events:none; }
 .my-wp-circle .wp-value { font-size:22px; }
 .opp-wp-circle .wp-value { font-size:18px; }
@@ -440,11 +440,16 @@ h3 { font-size: 10px; color: var(--text); }
 .priority-field-bot { color:var(--red); background:rgba(255,45,85,0.15); border:1px solid rgba(255,45,85,0.5); }
 
 /* ── Stack popup ───────────────────────────────────────────────────── */
-.stack-popup { position:fixed; top:38%; transform:translateY(-50%); right:130px; width:220px; background:var(--bg2); border:2px solid var(--purple-light); padding:8px; z-index:200; box-shadow:4px 4px 0 var(--purple-dark), var(--glow-purple); }
+.stack-popup { position:fixed; top:38%; transform:translateY(-50%); right:130px; width:260px; background:var(--bg2); border:2px solid var(--purple-light); padding:8px; z-index:200; box-shadow:4px 4px 0 var(--purple-dark), var(--glow-purple); }
 .stack-title { font-family:'Press Start 2P',monospace; font-size:9px; color:var(--purple-bright); margin-bottom:6px; }
-.stack-list { display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto; }
+.stack-list { display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto; }
 .stack-entry { display:flex; flex-direction:column; gap:2px; padding:4px 6px; background:var(--bg3); border:1px solid var(--border); font-size:10px; }
 .stack-entry.stack-top { border-color:var(--gold); }
+.stack-entry-row { display:flex; align-items:center; gap:6px; }
+.stack-card-preview { width:40px; height:56px; flex-shrink:0; border:1px solid var(--border); overflow:hidden; background:var(--bg2); display:flex; align-items:center; justify-content:center; }
+.stack-card-img { width:100%; height:100%; object-fit:cover; }
+.stack-card-img-placeholder { font-size:18px; text-align:center; }
+.stack-entry-info { display:flex; flex-direction:column; gap:2px; min-width:0; }
 .stack-badge { display:inline-block; font-family:'Press Start 2P',monospace; font-size:8px; color:var(--gold); margin-right:4px; }
 .stack-badge-small { position:absolute; bottom:2px; right:2px; font-size:7px; color:var(--purple-bright); background:var(--bg2); padding:1px 2px; }
 .card.on-stack { opacity:0.7; border-color:var(--purple-bright); box-shadow:0 0 8px var(--purple-bright); }
@@ -484,7 +489,7 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 .opp-hand-center { justify-content:center; flex-wrap:wrap; }
 .opp-hand-cards { display:flex; flex-wrap:wrap; justify-content:center; gap:0; transform:perspective(400px) rotateX(8deg); transform-origin:top center; }
 .opp-hand-count { font-size:8px; color:var(--text-dim); margin-left:4px; }
-.card-back { width:30px; height:44px; background:linear-gradient(135deg, var(--purple-dark) 0%, var(--bg3) 100%); border:2px solid var(--purple); border-radius:0; position:relative; flex-shrink:0; margin-left:-10px; box-shadow:2px 3px 0 #000, -1px 0 0 rgba(124,58,237,0.3); }
+.card-back { width:38px; height:55px; background:linear-gradient(135deg, var(--purple-dark) 0%, var(--bg3) 100%); border:2px solid var(--purple); border-radius:0; position:relative; flex-shrink:0; margin-left:-12px; box-shadow:2px 3px 0 #000, -1px 0 0 rgba(124,58,237,0.3); }
 .card-back:first-child { margin-left:0; }
 .card-back-inner { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--border-bright); font-size:10px; font-family:'Press Start 2P',monospace; }
 .card-back::after { content:''; position:absolute; inset:2px; border:1px solid var(--border); }
@@ -508,7 +513,7 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 
 /* ── Ritual zone ────────────────────────────────────────────────────── */
 .ritual-col { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
-.ritual-zone { display:flex; flex-direction:column; gap:2px; min-height:60px; max-height:90px; min-width:52px; padding:4px; background:#0a001a; border:2px dashed #7c3aed88; position:relative; overflow-y:auto; }
+.ritual-zone { display:flex; flex-direction:column; gap:3px; min-height:75px; max-height:112px; min-width:65px; padding:5px; background:#0a001a; border:2px dashed #7c3aed88; position:relative; overflow-y:auto; }
 .ritual-zone.drag-over { border-color:var(--purple-bright) !important; box-shadow:0 0 12px var(--purple-bright) !important; background:rgba(124,58,237,0.1) !important; }
 .ritual-zone.ritual-zone-forming { border-color:var(--gold) !important; box-shadow:0 0 14px var(--gold), 0 0 28px rgba(255,215,0,0.3) !important; animation:ritualForming 1.5s ease-in-out infinite; }
 @keyframes ritualForming { 0%,100% { box-shadow:0 0 8px var(--gold); } 50% { box-shadow:0 0 20px var(--gold), 0 0 40px rgba(255,215,0,0.5); } }
@@ -518,8 +523,8 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 .ritual-hint { font-size:8px; color:var(--text-dim); text-align:center; padding:4px; line-height:1.5; }
 .ritual-hint-active { font-size:7px; color:var(--gold); text-align:center; padding:2px 4px; line-height:1.5; font-family:'Press Start 2P',monospace; animation:ritualNamePulse 2s infinite; max-width:90px; word-break:break-word; }
 @keyframes ritualNamePulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
-.ritual-zone .card { width: 44px; height: 62px; }
-.ritual-zone .card .card-name { font-size:5px; }
+.ritual-zone .card { width: 55px; height: 78px; }
+.ritual-zone .card .card-name { font-size:6px; }
 
 /* ── Ritual popup ────────────────────────────────────────────────────── */
 .ritual-toast { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.96); border:3px solid var(--gold); color:var(--gold); font-family:'Press Start 2P',monospace; padding:28px 36px; z-index:700; text-align:center; max-width:460px; min-width:260px; word-break:break-word; box-shadow:0 0 40px var(--gold), 0 0 80px rgba(255,215,0,0.3), 8px 8px 0 var(--purple-dark); animation:ritualPopupIn 0.35s cubic-bezier(0.2,0.9,0.4,1.2); pointer-events:none; }
@@ -530,6 +535,12 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 @keyframes ritualIconSpin { from { transform:rotate(-30deg) scale(0.5); } to { transform:rotate(0deg) scale(1); } }
 .ritual-toast-fade { animation:ritualPopupOut 0.55s ease-in forwards; }
 @keyframes ritualPopupOut { to { opacity:0; transform:translate(-50%, -50%) scale(0.8); } }
+
+/* ── Breakpoint & Pause overlays ───────────────────────────────────── */
+.breakpoint-hit-overlay .modal { border:2px solid var(--gold); box-shadow:0 0 40px rgba(255,215,0,0.3); }
+.pause-overlay .modal { border:2px solid var(--cyan); box-shadow:0 0 40px rgba(0,255,255,0.2); }
+.bp-phase-btn { cursor:pointer; border:1px solid var(--border); transition:all 0.1s; }
+.bp-phase-btn:hover { border-color:var(--gold); transform:translateY(-1px); }
 
 /* ── Opponent absence countdown popup ───────────────────────────────── */
 .absence-popup { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.96); border:3px solid var(--red); color:var(--red); font-family:'Press Start 2P',monospace; padding:24px 32px; z-index:750; text-align:center; min-width:260px; max-width:340px; box-shadow:0 0 30px rgba(255,45,85,0.6), 0 0 60px rgba(255,45,85,0.2), 8px 8px 0 #1a0008; animation:absencePopupIn 0.3s ease-out; pointer-events:none; }

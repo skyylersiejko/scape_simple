@@ -956,6 +956,20 @@ function endTurn(state: GameState): GameState {
     next = setPlayerState(next, p2, { ...ps2, attackers: [], blockers: {} });
   }
 
+  // Reset damage (counters) on all beings for both players at end of turn
+  const resetDamage = (playerUid: string) => {
+    const pps = getPlayerState(next, playerUid);
+    const bf = pps.battlefield.map(c => {
+      if (CARD_DEFS[c.defId]?.type === 'being' && c.counters > 0) {
+        return { ...c, counters: 0 };
+      }
+      return c;
+    });
+    next = setPlayerState(next, playerUid, { ...pps, battlefield: bf });
+  };
+  resetDamage(p1);
+  resetDamage(p2);
+
   next = replenishPhase(next, nextUid);
   // Note: do NOT call drawPhase here — advancePhase(replenish→draw) will handle it.
   // Calling it here would cause a double-draw since the UI auto-advances phases.
@@ -1462,11 +1476,11 @@ export function cultivate(
   newYard.splice(newYard.findIndex(c => c.id === yardBeingId), 1);
   newYard = [...newYard, ...sacrificed];
 
-  const summonedBeing: CardInstance = { ...yardBeing, exhausted: true, summonedThisTurn: true };
+  const summonedBeing: CardInstance = { ...yardBeing, exhausted: true, summonedThisTurn: true, counters: 0 };
   let next = setPlayerState(state, uid, {
     ...ps, battlefield: [...battlefield, summonedBeing], yard: newYard
   });
-  const msg = `�� CULTIVATE: ${yardBeingDef.name} summoned from yard (exhausted, cannot attack)!`;
+  const msg = `🌱 CULTIVATE: ${yardBeingDef.name} summoned from yard (exhausted, cannot attack)!`;
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return checkWinConditions(next);

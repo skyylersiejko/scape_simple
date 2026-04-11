@@ -58,7 +58,10 @@ export class BotGameScreen {
   private showSettings = false;
   private dragCardId: string | null = null;
   private handOrder: string[] = [];
-  private manualPhaseMode = false;
+  private phaseBreakpoint: GamePhase | null = null;
+  private showBreakpointPicker = false;
+  private breakpointHitPhase: string | null = null;
+  private gamePaused = false;
 
   // Ritual popup dismiss timer
   private ritualPopupTimerId: ReturnType<typeof setTimeout> | null = null;
@@ -146,9 +149,20 @@ export class BotGameScreen {
 
     // Detect turn change — show popup
     const turnChanged = this.gameState.currentTurn !== newState.currentTurn;
+    // Detect phase breakpoint hit
+    const phaseChanged = this.gameState.phase !== newState.phase;
 
     this.gameState = newState;
     this.render();
+
+    // Phase breakpoint notification
+    if (phaseChanged && this.phaseBreakpoint && newState.phase === this.phaseBreakpoint &&
+        newState.currentTurn === myUid && !newState.winner) {
+      this.breakpointHitPhase = newState.phase;
+      this.clearPlayerInactivityTimer();
+      this.clearPriorityCountdown();
+      this.render();
+    }
 
     // Show ritual popup if one was set
     if (newState.pendingRitualPopup) {
@@ -251,7 +265,7 @@ export class BotGameScreen {
     const titleClass = this.turnPopupIsMyTurn ? 'yours' : 'bots';
     const titleText = this.turnPopupIsMyTurn ? '⚔ YOUR TURN' : '🤖 BOT\'S TURN';
     const yieldBtn = this.turnPopupIsMyTurn
-      ? `<button id="btn-turn-popup-yield" class="btn-gold" style="font-size:8px;padding:5px 10px">🤝 Yield (manual)</button>`
+      ? `<button id="btn-turn-popup-yield" class="btn-gold" style="font-size:8px;padding:5px 10px">🔴 Stop at Play 1</button>`
       : '';
     return `
       <div class="turn-popup-overlay" id="turn-popup-overlay">
@@ -320,21 +334,22 @@ export class BotGameScreen {
   private startPlayerInactivityTimer(): void {
     this.clearPlayerInactivityTimer();
     if (this.gameState.winner) return;
+    if (this.gamePaused || this.breakpointHitPhase) return;
     const gs = this.gameState;
     const myUid = this.currentUser.uid;
     const isEarlyPhase = (gs.phase === 'replenish' || gs.phase === 'draw') && gs.currentTurn === myUid;
 
-    if (isEarlyPhase && !this.manualPhaseMode) {
+    if (isEarlyPhase) {
       // Auto-advance replenish/draw after 1 second
       this.playerInactivityTimerId = setTimeout(() => {
         this.playerInactivityTimerId = null;
         const curGs = this.gameState;
         if (curGs.currentTurn !== myUid || curGs.winner) return;
-        if (this.manualPhaseMode) return;
+        if (this.gamePaused || this.breakpointHitPhase) return;
         const next = advancePhase(curGs, myUid);
         if (next !== curGs) this.setState(next);
       }, 1000);
-    } else if (!this.manualPhaseMode) {
+    } else {
       // Normal 30s inactivity timer
       this.startPriorityCountdown(30000);
       this.playerInactivityTimerId = setTimeout(() => {
@@ -343,6 +358,7 @@ export class BotGameScreen {
         const curGs = this.gameState;
         if (curGs.currentTurn !== myUid || curGs.winner) return;
         if (curGs.priorityPlayer !== myUid || this.waitingOnPlayer || this.botRunning) return;
+        if (this.gamePaused || this.breakpointHitPhase) return;
         // Auto-advance phase after 30s of inactivity
         const next = advancePhase(curGs, myUid);
         if (next !== curGs) {
@@ -354,7 +370,6 @@ export class BotGameScreen {
         }
       }, 30000);
     }
-    // In manualPhaseMode: no auto-timer, player must click manually
   }
 
   private clearPlayerInactivityTimer(): void {
@@ -821,7 +836,14 @@ export class BotGameScreen {
                 <div class="battlefield-zone opp-being-zone ${isBlockStep && this.selectedCard ? 'block-targets-active' : ''}" id="opp-being-zone">
                   ${oppBeings.map(c => {
                     const isAtk = gs.p1State.attackers.includes(c.id) || gs.p2State.attackers.includes(c.id);
-                    const isValidTarget = isBlockStep && this.selectedCard && isAtk;
+                    let isValidTarget = isBlockStep && this.selectedCard && isAtk;
+                    // Non-flyer cannot block a flyer
+                    if (isValidTarget && this.selectedCard) {
+                      const selBlocker = ps.battlefield.find(b => b.id === this.selectedCard);
+                      const blkDef = selBlocker ? CARD_DEFS[selBlocker.defId] : null;
+                      const atkDef = CARD_DEFS[c.defId];
+                      if (atkDef?.isFlyer && !blkDef?.isFlyer) isValidTarget = false;
+                    }
                     return this.buildCardEl(c, !!isValidTarget, false, isAtk);
                   }).join('')}
                   ${opp.limbo.filter(c => CARD_DEFS[c.defId]?.type === 'being').map(c => this.buildCardEl(c, false, false, false, true)).join('')}
@@ -952,6 +974,9 @@ export class BotGameScreen {
       ${this.showRitualModal ? this.buildRitualModal(gs, myUid) : ''}
       ${this.turnPopupVisible ? this.buildTurnPopup() : ''}
       ${this.showSettings ? this.buildSettingsModal() : ''}
+      ${this.showBreakpointPicker ? this.buildBreakpointPickerPopup() : ''}
+      ${this.breakpointHitPhase ? this.buildBreakpointHitPopup() : ''}
+      ${this.gamePaused ? this.buildPauseOverlay() : ''}
 
       <!-- Player WP circle floating over field bottom-center -->
       <div class="my-wp-circle" style="--wp-color:${myWpColor}">
@@ -972,8 +997,8 @@ export class BotGameScreen {
     const priorityLabel = myHasP
       ? `<span class="priority-mine">⚡ YOUR PRIORITY</span>`
       : `<span class="priority-bot">⚡ BOT PRIORITY</span>`;
-    const stopBtnLabel = this.manualPhaseMode ? '🛑 MANUAL' : '⏸ STOP';
-    const stopBtnClass = this.manualPhaseMode ? 'btn-danger' : 'btn-gold';
+    const stopBtnLabel = this.phaseBreakpoint ? `🔴 STOP @ ${this.phaseBreakpoint.toUpperCase()}` : '⏸ SET STOP';
+    const stopBtnClass = this.phaseBreakpoint ? 'btn-danger' : 'btn-gold';
     const turnBanner = isMyTurn
       ? `<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);background:rgba(0,255,65,0.1);padding:2px 6px;border:1px solid var(--green)">⚔ YOUR TURN</span>`
       : `<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--red);background:rgba(255,45,85,0.1);padding:2px 6px;border:1px solid var(--red)">🤖 BOT TURN</span>`;
@@ -1071,11 +1096,20 @@ export class BotGameScreen {
     const stackItems = [...gs.stack].reverse().map((entry, i) => {
       const def = CARD_DEFS[entry.cardDefId];
       const isTop = i === 0;
+      const emoji = def ? ({being:'🐉',landscape:'🌿',spell:'✨',ancient:'⭐'}[def.type] ?? '?') : '?';
+      const imgTag = def?.imageUrl
+        ? `<img src="${def.imageUrl}" alt="${def.name}" class="stack-card-img" onerror="this.style.display='none'" />`
+        : `<div class="stack-card-img-placeholder">${emoji}</div>`;
       return `
         <div class="stack-entry ${isTop ? 'stack-top' : ''}">
-          <span class="stack-badge">${gs.stack.length - i}</span>
-          <span>${def?.name ?? '?'} (${entry.playerId === myUid ? 'YOU' : 'BOT'})</span>
-          ${entry.target ? `<span style="color:var(--text-dim);font-size:9px">→ ${entry.target}</span>` : ''}
+          <div class="stack-entry-row">
+            <div class="stack-card-preview">${imgTag}</div>
+            <div class="stack-entry-info">
+              <span class="stack-badge">${gs.stack.length - i}</span>
+              <span>${def?.name ?? '?'} (${entry.playerId === myUid ? 'YOU' : 'BOT'})</span>
+              ${entry.target ? `<span style="color:var(--text-dim);font-size:9px">→ ${entry.target}</span>` : ''}
+            </div>
+          </div>
         </div>
       `;
     }).join('');
@@ -1166,7 +1200,7 @@ export class BotGameScreen {
   }
 
   private buildEmptyAncient(): string {
-    return `<div style="width:90px;height:126px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-dim);text-align:center">NO<br>ANCIENT</div>`;
+    return `<div style="width:112px;height:158px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-dim);text-align:center">NO<br>ANCIENT</div>`;
   }
 
   private buildCardEl(card: CardInstance, interactive: boolean, isAncient: boolean, isAttacker = false, isOnStack = false, isBlockerSelected = false, isAssignedBlocker = false, draggableForRitual = false): string {
@@ -1196,7 +1230,7 @@ export class BotGameScreen {
       ? ''
       : '';
 
-    const w = isAncient ? 'width:90px;height:126px' : '';
+    const w = isAncient ? 'width:112px;height:158px' : '';
 
     return `
       <div class="card ${typeClass} ${exhaustedClass} ${selectedClass} ${attackerClass} ${blockerClass} ${stackClass} ${sickClass} tooltip-container"
@@ -1429,16 +1463,89 @@ export class BotGameScreen {
   }
 
   private buildSettingsModal(): string {
+    const pauseLabel = this.gamePaused ? '▶ Resume Game' : '⏸ Pause Game';
+    const pauseBtnClass = this.gamePaused ? 'btn-green' : 'btn-gold';
     return `
       <div class="overlay" id="settings-overlay">
         <div class="modal" style="max-width:320px;text-align:center">
           <div class="modal-title" style="color:var(--cyan)">⚙ SETTINGS</div>
           <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+            <button id="btn-settings-pause" class="${pauseBtnClass}" style="width:100%;padding:10px;font-size:10px">${pauseLabel}</button>
             <button id="btn-settings-lobby" class="btn-green" style="width:100%;padding:10px;font-size:10px">🏠 Exit to Lobby<br><span style="font-size:8px;color:var(--text-dim)">(game stays active)</span></button>
             <button id="btn-settings-concede" class="btn-danger" style="width:100%;padding:10px;font-size:10px">🏳 Concede</button>
             <button id="btn-settings-bug" class="btn-gold" style="width:100%;padding:10px;font-size:10px">🐛 Report a Bug</button>
           </div>
           <button id="btn-settings-close" class="btn-green w-full">✕ Close</button>
+        </div>
+      </div>
+    `;
+  }
+
+  private buildBreakpointPickerPopup(): string {
+    const phases: Array<{ id: GamePhase; label: string; desc: string }> = [
+      { id: 'replenish', label: 'REPLENISH', desc: 'Untap & refresh' },
+      { id: 'draw', label: 'DRAW', desc: 'Draw a card' },
+      { id: 'play1', label: 'PLAY 1', desc: 'Play cards before combat' },
+      { id: 'combat', label: 'COMBAT', desc: 'Attack & block' },
+      { id: 'play2', label: 'PLAY 2', desc: 'Play cards after combat' },
+      { id: 'end', label: 'END', desc: 'End of turn' },
+    ];
+    const currentBp = this.phaseBreakpoint;
+    return `
+      <div class="overlay" id="breakpoint-picker-overlay">
+        <div class="modal" style="max-width:340px;text-align:center">
+          <div class="modal-title" style="color:var(--gold)">🔴 SET PHASE BREAKPOINT</div>
+          <p style="font-size:9px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
+            Choose a phase. When you reach it on your turn, the game will pause and notify you.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+            ${phases.map(p => {
+              const isActive = currentBp === p.id;
+              const cls = isActive ? 'btn-danger' : 'btn-gold';
+              const mark = isActive ? ' ✓ ACTIVE' : '';
+              return `<button class="bp-phase-btn ${cls}" data-phase="${p.id}" style="text-align:left;padding:7px 10px;opacity:1">
+                <div style="font-size:9px;font-family:'Press Start 2P',monospace">${p.label}${mark}</div>
+                <div style="font-size:8px;color:var(--text-dim);margin-top:2px">${p.desc}</div>
+              </button>`;
+            }).join('')}
+          </div>
+          ${currentBp ? `<button id="btn-bp-clear" class="btn-danger w-full" style="margin-bottom:8px">✕ Clear Breakpoint</button>` : ''}
+          <button id="btn-bp-close" class="btn-green w-full">Close</button>
+        </div>
+      </div>
+    `;
+  }
+
+  private buildBreakpointHitPopup(): string {
+    const phaseLabels: Record<string, string> = {
+      replenish: 'REPLENISH', draw: 'DRAW', play1: 'PLAY 1',
+      combat: 'COMBAT', play2: 'PLAY 2', end: 'END',
+    };
+    const label = phaseLabels[this.breakpointHitPhase ?? ''] ?? this.breakpointHitPhase ?? '';
+    return `
+      <div class="overlay breakpoint-hit-overlay" id="breakpoint-hit-overlay">
+        <div class="modal" style="max-width:360px;text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">🔴</div>
+          <div class="modal-title" style="color:var(--gold)">PHASE BREAKPOINT</div>
+          <p style="font-size:12px;color:var(--text);margin:12px 0;font-family:'Press Start 2P',monospace;letter-spacing:1px">${label}</p>
+          <p style="font-size:9px;color:var(--text-dim);margin-bottom:16px">The game has paused at your breakpoint. Take your time.</p>
+          <div style="display:flex;gap:8px">
+            <button id="btn-bp-hit-continue" class="btn-green" style="flex:1;padding:10px">▶ Continue</button>
+            <button id="btn-bp-hit-clear" class="btn-gold" style="flex:1;padding:10px">✕ Clear & Continue</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private buildPauseOverlay(): string {
+    return `
+      <div class="overlay pause-overlay" id="pause-overlay">
+        <div class="modal" style="max-width:320px;text-align:center">
+          <div style="font-size:40px;margin-bottom:8px">⏸</div>
+          <div class="modal-title" style="color:var(--cyan)">GAME PAUSED</div>
+          <p style="font-size:9px;color:var(--text-dim);margin:12px 0">Open ⚙ Settings to resume the game.</p>
+          <button id="btn-pause-settings" class="btn-gold" style="width:100%;padding:10px;margin-bottom:8px">⚙ Open Settings</button>
         </div>
       </div>
     `;
@@ -1576,6 +1683,19 @@ export class BotGameScreen {
         this.render();
       }
     });
+    this.container.querySelector('#btn-settings-pause')?.addEventListener('click', () => {
+      this.gamePaused = !this.gamePaused;
+      this.showSettings = false;
+      if (this.gamePaused) {
+        this.clearPlayerInactivityTimer();
+        this.clearPriorityCountdown();
+      } else {
+        if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
+          this.startPlayerInactivityTimer();
+        }
+      }
+      this.render();
+    });
     this.container.querySelector('#btn-settings-bug')?.addEventListener('click', () => {
       this.showSettings = false;
       this.render();
@@ -1597,30 +1717,60 @@ export class BotGameScreen {
       }, 0);
     });
 
-    // Stop/auto button — toggle manual phase mode
+    // Stop/auto button — open breakpoint picker popup
     this.container.querySelector('#btn-stop-auto')?.addEventListener('click', () => {
-      this.manualPhaseMode = !this.manualPhaseMode;
-      if (this.manualPhaseMode) {
-        // Switching to manual: cancel any pending auto-timers
-        this.clearPlayerInactivityTimer();
-        this.clearPriorityCountdown();
-        // If currently stuck in replenish/draw, advance to play1 so landscapes can be played
-        const curGs = this.gameState;
-        if (curGs.currentTurn === myUid && (curGs.phase === 'replenish' || curGs.phase === 'draw')) {
-          let next = curGs;
-          while (next.phase === 'replenish' || next.phase === 'draw') {
-            next = advancePhase(next, myUid);
-          }
-          if (next !== curGs) {
-            this.gameState = next;
-          }
-        }
-      } else {
-        // Switching back to auto: restart the timer for current phase
-        if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
-          this.startPlayerInactivityTimer();
-        }
+      this.showBreakpointPicker = true;
+      this.render();
+    });
+
+    // Breakpoint picker popup listeners
+    this.container.querySelectorAll<HTMLButtonElement>('.bp-phase-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const phase = btn.dataset.phase as GamePhase;
+        this.phaseBreakpoint = phase;
+        this.showBreakpointPicker = false;
+        this.render();
+      });
+    });
+    this.container.querySelector('#btn-bp-clear')?.addEventListener('click', () => {
+      this.phaseBreakpoint = null;
+      this.showBreakpointPicker = false;
+      this.render();
+      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
+        this.startPlayerInactivityTimer();
       }
+    });
+    this.container.querySelector('#btn-bp-close')?.addEventListener('click', () => {
+      this.showBreakpointPicker = false;
+      this.render();
+    });
+    this.container.querySelector('#breakpoint-picker-overlay')?.addEventListener('click', (e) => {
+      if (e.target === this.container.querySelector('#breakpoint-picker-overlay')) {
+        this.showBreakpointPicker = false;
+        this.render();
+      }
+    });
+
+    // Breakpoint hit popup listeners
+    this.container.querySelector('#btn-bp-hit-continue')?.addEventListener('click', () => {
+      this.breakpointHitPhase = null;
+      this.render();
+      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
+        this.startPlayerInactivityTimer();
+      }
+    });
+    this.container.querySelector('#btn-bp-hit-clear')?.addEventListener('click', () => {
+      this.breakpointHitPhase = null;
+      this.phaseBreakpoint = null;
+      this.render();
+      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
+        this.startPlayerInactivityTimer();
+      }
+    });
+
+    // Pause overlay — open settings
+    this.container.querySelector('#btn-pause-settings')?.addEventListener('click', () => {
+      this.showSettings = true;
       this.render();
     });
 
@@ -1633,20 +1783,23 @@ export class BotGameScreen {
 
     this.container.querySelector('#btn-end-turn')?.addEventListener('click', () => {
       if (!isMyTurn || (this.botRunning && !this.waitingOnPlayer)) return;
-      // Resolve any pending stack, jump to the end step, and hand priority to the
-      // bot so it can respond before the turn actually ends.  botAutoPassPriority
-      // will return priority to the player; the inactivity timer (or Space) then
-      // calls advancePhase(phase='end') which calls endTurn().
       const resolved = gs.stack.length > 0 ? resolveEntireStack(gs) : gs;
-      this.setState({
-        ...resolved,
-        phase: 'end',
-        combatStep: 'none',
-        pendingDamageChoice: undefined,
-        stackPassedOnce: false,
-        stackPassPriority: undefined,
-        priorityPlayer: BOT_UID,
-      });
+      // If stack is empty and we're not in a combat step, go directly to end
+      if (resolved.stack.length === 0 && (resolved.phase !== 'combat' || resolved.combatStep === 'none')) {
+        const ended = advancePhase({ ...resolved, phase: 'end', combatStep: 'none', pendingDamageChoice: undefined }, myUid);
+        this.setState(ended);
+      } else {
+        // Fallback: hand priority to bot for combat/stack cases
+        this.setState({
+          ...resolved,
+          phase: 'end',
+          combatStep: 'none',
+          pendingDamageChoice: undefined,
+          stackPassedOnce: false,
+          stackPassPriority: undefined,
+          priorityPlayer: BOT_UID,
+        });
+      }
     });
 
     this.container.querySelector('#btn-pass-priority')?.addEventListener('click', () => {
@@ -1932,10 +2085,8 @@ export class BotGameScreen {
       this.dismissTurnPopup();
     });
     this.container.querySelector('#btn-turn-popup-yield')?.addEventListener('click', () => {
-      // Enable manual phase mode so replenish/draw don't auto-advance
-      this.manualPhaseMode = true;
-      this.clearPlayerInactivityTimer();
-      this.clearPriorityCountdown();
+      // Set a breakpoint at play1 so the game pauses at first play phase
+      this.phaseBreakpoint = 'play1';
       this.dismissTurnPopup();
     });
 
