@@ -1,4 +1,4 @@
-import type { User, GameState, CardInstance, PlayerGameState } from '../types';
+import type { User, GameState, CardInstance, PlayerGameState, GamePhase } from '../types';
 import { CARD_DEFS, ANCIENTS } from '../game/constants';
 import {
   createInitialGameState, getPlayerState, getOpponentState,
@@ -10,6 +10,7 @@ import {
   cultivate, study, evolve, nourish, lastBreath, sacAncientAndLandscapes,
   chooseCombatDamageMode
 } from '../game/engine';
+import { WillowAI } from '../game/ai';
 const BOT_SP_REWARD = 10;
 const BOT_WIN_LIMIT = 3;
 
@@ -78,6 +79,9 @@ export class BotGameScreen {
   // Spacebar listener
   private spacebarHandler: ((e: KeyboardEvent) => void) | null = null;
 
+  // Willow AI
+  private willow: WillowAI;
+
   constructor(currentUser: User, onNav: NavCallback) {
     this.currentUser = currentUser;
     this.onNav = onNav;
@@ -87,6 +91,11 @@ export class BotGameScreen {
     this.gameState = createInitialGameState('local_bot_game', currentUser.uid, BOT_UID);
     // Initialize hand order
     this.handOrder = getPlayerState(this.gameState, currentUser.uid).hand.map(c => c.id);
+
+    // Initialize Willow AI
+    this.willow = new WillowAI();
+    this.willow.startGame(BOT_UID, currentUser.uid);
+    this.prevPlayerHand = new Set(getPlayerState(this.gameState, currentUser.uid).hand.map(c => c.id));
 
     // Track mouse position for block drag-line
     this.mouseMoveHandler = (e: MouseEvent) => {
@@ -151,9 +160,18 @@ export class BotGameScreen {
     const turnChanged = this.gameState.currentTurn !== newState.currentTurn;
     // Detect phase breakpoint hit
     const phaseChanged = this.gameState.phase !== newState.phase;
+    const wasNotOver = !this.gameState.winner;
 
     this.gameState = newState;
     this.render();
+
+    // Notify Willow of player actions (detect cards leaving player's hand)
+    this.willowDetectPlayerActions(myUid, newState);
+
+    // Notify Willow when game ends
+    if (newState.winner && wasNotOver) {
+      this.willow.onGameEnd(newState.winner, BOT_UID);
+    }
 
     // Phase breakpoint notification
     if (phaseChanged && this.phaseBreakpoint && newState.phase === this.phaseBreakpoint &&
@@ -422,6 +440,27 @@ export class BotGameScreen {
   }
 
   // Choose the damage mode that maximises damage for the bot
+  // ── Willow AI: detect player actions from state diffs ─────────────────────
+  private prevPlayerHand: Set<string> = new Set();
+  private willowDetectPlayerActions(playerUid: string, gs: GameState): void {
+    const ps = getPlayerState(gs, playerUid);
+    const newHand = new Set(ps.hand.map(c => c.id));
+    // Cards that left the hand = player played them
+    for (const id of this.prevPlayerHand) {
+      if (!newHand.has(id)) {
+        // Try to find what the card was from the old game state
+        const oldPs = getPlayerState(this.gameState, playerUid);
+        const card = oldPs?.hand?.find(c => c.id === id);
+        if (card) {
+          const def = CARD_DEFS[card.defId];
+          const action = def ? `play_${def.type}_${def.spellType ?? def.id}` : 'play_unknown';
+          this.willow.recordPlayerAction(gs, BOT_UID, action);
+        }
+      }
+    }
+    this.prevPlayerHand = newHand;
+  }
+
   private botChooseDamageMode(gs: GameState): 'additive' | 'multiplicative' {
     const atkPs = getPlayerState(gs, BOT_UID);
     const defPs = getOpponentState(gs, BOT_UID);
@@ -433,10 +472,9 @@ export class BotGameScreen {
       })
       .filter(p => p > 0);
 
-    if (unblockedPowers.length <= 1) return 'additive'; // Same either way for 0–1 attackers
-    const additive = unblockedPowers.reduce((a, b) => a + b, 0);
-    const multiplicative = unblockedPowers.reduce((a, b) => a * b, 1);
-    return multiplicative >= additive ? 'multiplicative' : 'additive';
+    const mode = this.willow.recommendDamageMode(gs, BOT_UID, unblockedPowers);
+    this.willow.recordBotAction(gs, BOT_UID, mode === 'additive' ? 'damage_additive' : 'damage_multiplicative');
+    return mode;
   }
 
   // During player's attack, bot declares blockers then advances combat
@@ -455,26 +493,23 @@ export class BotGameScreen {
       const botPs = getPlayerState(gs, BOT_UID);
       const playerPs = getPlayerState(gs, myUid);
 
-      // Bot blocks: assign available non-exhausted beings against attackers,
-      // respecting the flying restriction (non-flyers cannot block flyers).
+      // Ask Willow for intelligent block assignments
       const availableBlockers = botPs.battlefield.filter(c => {
         const def = CARD_DEFS[c.defId];
         return def?.type === 'being' && !c.exhausted;
       });
 
-      for (const attackerId of [...playerPs.attackers]) {
-        if (availableBlockers.length === 0) break;
-        const atkCard = playerPs.battlefield.find(c => c.id === attackerId);
-        const atkDef = atkCard ? CARD_DEFS[atkCard.defId] : null;
-        // Find the first compatible blocker (non-flyer cannot block a flyer)
-        const compatIdx = availableBlockers.findIndex(b => {
-          const bDef = CARD_DEFS[b.defId];
-          return !(atkDef?.isFlyer && !bDef?.isFlyer);
-        });
-        if (compatIdx === -1) continue; // No compatible blocker for this attacker
-        const [blocker] = availableBlockers.splice(compatIdx, 1);
-        gs = declareBlocker(gs, BOT_UID, blocker.id, attackerId);
+      const willowAssignments = this.willow.recommendBlockers(
+        gs, BOT_UID, [...playerPs.attackers], [...availableBlockers],
+      );
+
+      for (const [atkId, blkId] of Object.entries(willowAssignments)) {
+        gs = declareBlocker(gs, BOT_UID, blkId, atkId);
       }
+      this.willow.recordBotAction(gs, BOT_UID,
+        Object.keys(willowAssignments).length === playerPs.attackers.length ? 'block_all' :
+        Object.keys(willowAssignments).length > 0 ? 'block_selective' : 'no_block',
+      );
 
       this.gameState = gs;
       this.render();
@@ -519,13 +554,23 @@ export class BotGameScreen {
         gs = advancePhase(gs, BOT_UID); // none → pre
         gs = advancePhase(gs, BOT_UID); // pre → attackers
 
+        // Ask Willow for attack strategy
+        const strategy = this.willow.recommendAttackStrategy(gs, BOT_UID);
         const botPs = getPlayerState(gs, BOT_UID);
-        for (const c of botPs.battlefield) {
+        const eligible = botPs.battlefield.filter(c => {
           const def = CARD_DEFS[c.defId];
-          // Wasp cannot attack the turn it was summoned
-          if (def?.type === 'being' && (!c.exhausted || def.isFlyer) && !(def.id === 'wasp' && c.summonedThisTurn)) {
-            gs = declareAttacker(gs, BOT_UID, c.id);
-          }
+          return def?.type === 'being' && (!c.exhausted || def.isFlyer) && !(def.id === 'wasp' && c.summonedThisTurn);
+        });
+
+        if (strategy === 'all') {
+          for (const c of eligible) gs = declareAttacker(gs, BOT_UID, c.id);
+          this.willow.recordBotAction(gs, BOT_UID, 'attack_all', 0.1);
+        } else if (strategy === 'selective') {
+          const toAttack = this.willow.evaluateAttackers(gs, BOT_UID, eligible);
+          for (const id of toAttack) gs = declareAttacker(gs, BOT_UID, id);
+          this.willow.recordBotAction(gs, BOT_UID, 'attack_selective', 0.05);
+        } else {
+          this.willow.recordBotAction(gs, BOT_UID, 'no_attack');
         }
         this.gameState = gs;
         this.render();
@@ -597,6 +642,7 @@ export class BotGameScreen {
         if (next !== gs) {
           gs = next;
           landPlayed++;
+          this.willow.recordBotAction(gs, BOT_UID, 'play_landscape', 0.1);
           this.gameState = gs;
           this.render();
           await this.delay(500);
@@ -604,16 +650,21 @@ export class BotGameScreen {
       }
     }
 
-    // Play beings cheapest first
+    // Play beings — Willow recommends play order
     const refreshedPs = getPlayerState(gs, BOT_UID);
-    const beings = refreshedPs.hand
-      .filter(c => CARD_DEFS[c.defId]?.type === 'being')
-      .sort((a, b) => (CARD_DEFS[a.defId]?.cost ?? 0) - (CARD_DEFS[b.defId]?.cost ?? 0));
+    const beings = this.willow.recommendPlayOrder(
+      gs, BOT_UID,
+      refreshedPs.hand.filter(c => CARD_DEFS[c.defId]?.type === 'being'),
+    );
 
     for (const c of beings) {
+      const def = CARD_DEFS[c.defId];
       const next = playCard(gs, BOT_UID, c.id);
       if (next !== gs) {
         gs = next;
+        const cost = def?.cost ?? 1;
+        const action = def?.isFlyer ? 'play_flyer' : (`play_being_${Math.min(5, Math.max(1, cost))}` as any);
+        this.willow.recordBotAction(gs, BOT_UID, action, 0.05 * cost);
         this.gameState = gs;
         this.render();
         await this.delay(400);
@@ -630,7 +681,7 @@ export class BotGameScreen {
       }
     }
 
-    // Cast spells (ignite/spike at opponent or their beings, grow if useful)
+    // Cast spells — Willow advises on targeting
     const currentPs = getPlayerState(gs, BOT_UID);
     const spells = currentPs.hand
       .filter(c => CARD_DEFS[c.defId]?.type === 'spell')
@@ -643,20 +694,23 @@ export class BotGameScreen {
       if (botWP < (def.cost ?? 0)) continue;
 
       let target: string | undefined;
+      let actionLabel: string = 'skip';
       if (def.spellType === 'ignite' || def.spellType === 'spike') {
-        // Target player's strongest being or player directly
+        const recommendation = this.willow.recommendSpellTarget(gs, BOT_UID, def.spellType);
         const playerPs = getPlayerState(gs, this.currentUser.uid);
         const playerBeings = playerPs.battlefield.filter(b => CARD_DEFS[b.defId]?.type === 'being');
-        if (playerBeings.length > 0) {
-          // Target highest power being
-          const target_ = playerBeings.sort((a, b) => (CARD_DEFS[b.defId]?.power ?? 0) - (CARD_DEFS[a.defId]?.power ?? 0))[0];
-          target = target_.id;
+
+        if (recommendation === 'best_being' && playerBeings.length > 0) {
+          const best = playerBeings.sort((a, b) => (CARD_DEFS[b.defId]?.power ?? 0) - (CARD_DEFS[a.defId]?.power ?? 0))[0];
+          target = best.id;
+          actionLabel = def.spellType === 'ignite' ? 'cast_ignite_being' : 'cast_spike_being';
         } else {
           target = 'opponent';
+          actionLabel = def.spellType === 'ignite' ? 'cast_ignite_opponent' : 'cast_spike_opponent';
         }
       } else if (def.spellType === 'grow') {
-        // Cast grow if we have it
         target = undefined;
+        actionLabel = 'cast_grow';
       } else if (def.spellType === 'cancel') {
         // Don't cast cancel proactively (save for response)
         continue;
@@ -665,6 +719,7 @@ export class BotGameScreen {
       const next = playCard(gs, BOT_UID, c.id, target);
       if (next !== gs) {
         gs = next;
+        this.willow.recordBotAction(gs, BOT_UID, actionLabel as any, 0.1);
         this.gameState = gs;
         this.render();
         await this.delay(400);
@@ -761,9 +816,10 @@ export class BotGameScreen {
       .filter(id => ps.hand.some(c => c.id === id))
       .map(id => ps.hand.find(c => c.id === id)!);
 
-    // Opponent hand card backs — centered
+    // Opponent hand card backs — centered, using card-back logo
+    const cardBackUrl = `${import.meta.env.BASE_URL}cards/scape_back_logo.png`;
     const oppHandBacks = Array(opp.hand.length).fill(0).map(() =>
-      `<div class="card-back"><div class="card-back-inner">?</div></div>`
+      `<div class="card-back"><div class="card-back-inner"><img src="${cardBackUrl}" alt="?" onerror="this.outerHTML='?'" /></div></div>`
     ).join('');
 
     // Ritual zone partial match hints
@@ -944,6 +1000,10 @@ export class BotGameScreen {
 
       <!-- Hand area -->
       <div class="hand-area" id="hand-area" data-drop="hand">
+        <div class="deck-widget">
+          <img class="deck-widget-img" src="${cardBackUrl}" alt="Deck" />
+          <span class="deck-widget-count">🂠 ${ps.deck.length}</span>
+        </div>
         <div class="hand-label">HAND (${orderedHand.length}) — drag to reorder · drag to zone to play · SPACE = pass priority</div>
         <div class="hand-cards" id="hand-cards">
           ${orderedHand.map((c, i) => {
@@ -1465,15 +1525,29 @@ export class BotGameScreen {
   private buildSettingsModal(): string {
     const pauseLabel = this.gamePaused ? '▶ Resume Game' : '⏸ Pause Game';
     const pauseBtnClass = this.gamePaused ? 'btn-green' : 'btn-gold';
+    const stats = this.willow.getStats();
     return `
       <div class="overlay" id="settings-overlay">
-        <div class="modal" style="max-width:320px;text-align:center">
+        <div class="modal" style="max-width:340px;text-align:center">
           <div class="modal-title" style="color:var(--cyan)">⚙ SETTINGS</div>
           <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
             <button id="btn-settings-pause" class="${pauseBtnClass}" style="width:100%;padding:10px;font-size:10px">${pauseLabel}</button>
             <button id="btn-settings-lobby" class="btn-green" style="width:100%;padding:10px;font-size:10px">🏠 Exit to Lobby<br><span style="font-size:8px;color:var(--text-dim)">(game stays active)</span></button>
             <button id="btn-settings-concede" class="btn-danger" style="width:100%;padding:10px;font-size:10px">🏳 Concede</button>
             <button id="btn-settings-bug" class="btn-gold" style="width:100%;padding:10px;font-size:10px">🐛 Report a Bug</button>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">
+            <div style="font-size:9px;color:var(--gold);font-family:'Press Start 2P',monospace;margin-bottom:8px">🌿 WILLOW AI</div>
+            <div style="font-size:8px;color:var(--text-dim);line-height:1.8;text-align:left;padding:0 8px">
+              Games: ${stats.gamesPlayed} &nbsp;|&nbsp; Win rate: ${stats.winRate}<br>
+              Patterns: ${stats.patternsLearned} &nbsp;|&nbsp; Data: ${stats.modelSizeKB}KB<br>
+              Exploration: ${stats.explorationRate}
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button id="btn-willow-export" class="btn-gold" style="flex:1;padding:7px;font-size:8px">⬇ Export Model</button>
+              <button id="btn-willow-import" class="btn-gold" style="flex:1;padding:7px;font-size:8px">⬆ Import Model</button>
+            </div>
+            <button id="btn-willow-reset" class="btn-danger" style="width:100%;padding:7px;font-size:8px;margin-top:6px">🗑 Reset Willow</button>
           </div>
           <button id="btn-settings-close" class="btn-green w-full">✕ Close</button>
         </div>
@@ -1544,7 +1618,8 @@ export class BotGameScreen {
         <div class="modal" style="max-width:320px;text-align:center">
           <div style="font-size:40px;margin-bottom:8px">⏸</div>
           <div class="modal-title" style="color:var(--cyan)">GAME PAUSED</div>
-          <p style="font-size:9px;color:var(--text-dim);margin:12px 0">Open ⚙ Settings to resume the game.</p>
+          <p style="font-size:9px;color:var(--text-dim);margin:12px 0">Resume the game or open settings.</p>
+          <button id="btn-pause-resume" class="btn-green" style="width:100%;padding:10px;margin-bottom:8px">▶ Resume Game</button>
           <button id="btn-pause-settings" class="btn-gold" style="width:100%;padding:10px;margin-bottom:8px">⚙ Open Settings</button>
         </div>
       </div>
@@ -1561,14 +1636,23 @@ export class BotGameScreen {
     // Remove existing SVG
     this.container.querySelector('#block-svg')?.remove();
 
-    const isBlockStep = gs.phase === 'combat' && gs.combatStep === 'blocks' && gs.currentTurn !== myUid;
-    if (!isBlockStep) return;
+    if (gs.phase !== 'combat') return;
 
     const ps = getPlayerState(gs, myUid);
-    const hasSelected = !!this.selectedCard && ps.battlefield.some(c => c.id === this.selectedCard);
-    const hasAssigned = Object.keys(ps.blockers).length > 0;
+    const opp = getOpponentState(gs, myUid);
 
-    if (!hasSelected && !hasAssigned) return;
+    const isPlayerBlockStep = gs.combatStep === 'blocks' && gs.currentTurn !== myUid;
+    const botHasBlockers = Object.keys(opp.blockers).length > 0;
+
+    // For player block step: need selected card, assignments, or bot blockers to show
+    let playerHasBlockLines = false;
+    if (isPlayerBlockStep) {
+      const hasSelected = !!this.selectedCard && ps.battlefield.some(c => c.id === this.selectedCard);
+      const hasAssigned = Object.keys(ps.blockers).length > 0;
+      playerHasBlockLines = hasSelected || hasAssigned;
+    }
+
+    if (!playerHasBlockLines && !botHasBlockers) return;
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.id = 'block-svg';
@@ -1601,8 +1685,8 @@ export class BotGameScreen {
       return line;
     };
 
-    // Draw drag line from selected blocker to mouse cursor
-    if (hasSelected && this.selectedCard) {
+    // Draw drag line from selected blocker to mouse cursor (player block step only)
+    if (isPlayerBlockStep && this.selectedCard && ps.battlefield.some(c => c.id === this.selectedCard)) {
       const from = getCenter(this.selectedCard);
       if (from && this.blockDragPos) {
         svg.appendChild(makeLine(from.x, from.y, this.blockDragPos.x, this.blockDragPos.y, '6,4'));
@@ -1617,7 +1701,7 @@ export class BotGameScreen {
       }
     }
 
-    // Draw committed block assignment lines
+    // Draw committed block assignment lines (player)
     for (const [blockerId, attackerId] of Object.entries(ps.blockers)) {
       const from = getCenter(blockerId);
       const to = getCenter(attackerId);
@@ -1630,6 +1714,27 @@ export class BotGameScreen {
         circle.setAttribute('r', ASSIGNED_CIRCLE_RADIUS);
         circle.setAttribute('fill', 'none');
         circle.setAttribute('stroke', BLOCK_COLOR);
+        circle.setAttribute('stroke-width', '2');
+        svg.appendChild(circle);
+      }
+    }
+
+    // Draw bot block assignment lines (solid orange)
+    const BOT_BLOCK_COLOR = '#ff8c00';
+    for (const [blockerId, attackerId] of Object.entries(opp.blockers)) {
+      const from = getCenter(blockerId);
+      const to = getCenter(attackerId);
+      if (from && to) {
+        const line = makeLine(from.x, from.y, to.x, to.y, '');
+        line.setAttribute('stroke', BOT_BLOCK_COLOR);
+        svg.appendChild(line);
+        // Target ring at player's attacker
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', String(to.x));
+        circle.setAttribute('cy', String(to.y));
+        circle.setAttribute('r', ASSIGNED_CIRCLE_RADIUS);
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', BOT_BLOCK_COLOR);
         circle.setAttribute('stroke-width', '2');
         svg.appendChild(circle);
       }
@@ -1679,6 +1784,7 @@ export class BotGameScreen {
     this.container.querySelector('#btn-settings-concede')?.addEventListener('click', () => {
       if (confirm('🏳 Concede this game? This will count as a loss.')) {
         this.showSettings = false;
+        this.willow.onGameEnd(BOT_UID, BOT_UID);
         this.gameState = { ...this.gameState, winner: BOT_UID };
         this.render();
       }
@@ -1715,6 +1821,52 @@ export class BotGameScreen {
         bugOverlay.querySelector('#btn-bug-close')?.addEventListener('click', () => bugOverlay.remove());
         bugOverlay.addEventListener('click', (e) => { if (e.target === bugOverlay) bugOverlay.remove(); });
       }, 0);
+    });
+
+    // Willow AI export
+    this.container.querySelector('#btn-willow-export')?.addEventListener('click', () => {
+      const json = this.willow.exportModel();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `willow-model-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Willow AI import
+    this.container.querySelector('#btn-willow-import')?.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = reader.result as string;
+          const success = this.willow.importModel(text);
+          if (success) {
+            alert('Willow model imported successfully!');
+          } else {
+            alert('Failed to import model. Invalid or incompatible file.');
+          }
+          this.showSettings = false;
+          this.render();
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    });
+
+    // Willow AI reset
+    this.container.querySelector('#btn-willow-reset')?.addEventListener('click', () => {
+      if (confirm('Reset all Willow learning data? This cannot be undone.')) {
+        this.willow.resetModel();
+        this.showSettings = false;
+        this.render();
+      }
     });
 
     // Stop/auto button — open breakpoint picker popup
@@ -1771,6 +1923,12 @@ export class BotGameScreen {
     // Pause overlay — open settings
     this.container.querySelector('#btn-pause-settings')?.addEventListener('click', () => {
       this.showSettings = true;
+      this.render();
+    });
+
+    // Pause overlay — resume game
+    this.container.querySelector('#btn-pause-resume')?.addEventListener('click', () => {
+      this.gamePaused = false;
       this.render();
     });
 
@@ -2415,16 +2573,19 @@ export class BotGameScreen {
     // and there is something on the stack from the player
     if (gs.priorityPlayer !== BOT_UID || gs.stack.length === 0) return false;
 
-    // Bot always cancels Grow when the player casts it (and any other non-being spell if possible)
     const topEntry = gs.stack[gs.stack.length - 1];
     const topDef = CARD_DEFS[topEntry.cardDefId];
     // Only respond to the player's spells (not the bot's own)
     if (topEntry.playerId !== myUid) return false;
-    if (topDef?.type !== 'being') {
+
+    // Ask Willow whether to counter
+    const { action } = this.willow.shouldCounter(gs, BOT_UID);
+    if (action === 'respond_cancel' && topDef?.type !== 'being') {
       const cancelCard = botPs.hand.find(c => CARD_DEFS[c.defId]?.spellType === 'cancel');
       if (cancelCard && botPs.willPower >= (CARD_DEFS[cancelCard.defId]?.cost ?? 0)) {
         const next = playCard(gs, BOT_UID, cancelCard.id);
         if (next !== gs) {
+          this.willow.recordBotAction(gs, BOT_UID, 'respond_cancel', 0.2);
           this.gameState = next;
           this.render();
           // Bot's cancel is on stack; pass priority back to player to respond
@@ -2439,6 +2600,7 @@ export class BotGameScreen {
         }
       }
     }
+    this.willow.recordBotAction(gs, BOT_UID, 'respond_pass');
     return false;
   }
 
