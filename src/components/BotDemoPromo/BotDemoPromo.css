@@ -1,8 +1,10 @@
 .BotDemoPromo {
   display: flex;
   justify-content: center;
-  margin: 1rem 0 0.75rem;
+  width: 100%;
+  margin: 0 0 1.5rem;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .BotDemoPromo_Button {

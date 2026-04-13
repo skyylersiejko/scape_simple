@@ -7,4 +7,14 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Global section container — ensures all sections share a consistent width */
+.section-container {
+  max-width: 900px;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
 

@@ -5,6 +5,9 @@
   align-items: center;
   gap: 2rem;
   padding: 1rem 0;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* Each card: two columns (info + image) */

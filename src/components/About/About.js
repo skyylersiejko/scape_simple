@@ -51,7 +51,7 @@ class About extends React.Component {
 
         </div>
 
-        <div style = {{color: "white", fontStyle:"italic", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"20px", maxWidth:"900px", margin:"0 auto"  }}>"I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the games integrity."</div>
+        <div style = {{color: "white", fontStyle:"italic", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"20px 0", maxWidth:"100%", margin:"0 auto"  }}>"I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the games integrity."</div>
 
 
 

@@ -20,19 +20,19 @@ class Main extends React.Component {
   render() {
     return (
       <div className={"Main"}>
-       
         <div className={"Banner"}>
           <div className={"Main_Title"}>
             <img alt={"scape_logo"} src={Logo} />
           </div>
-          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center", padding: "15px"}}> version 1.0</div>
+          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center", padding: "15px"}}> version 1.3</div>
         </div>
-        <About />
-      <BotDemoPromo />
-        
-       <Panel/>
-       <HowTo/>
-       <Cards/>
+        <div className={"Site_Content"}>
+          <About />
+          <BotDemoPromo />
+          <Panel/>
+          <HowTo/>
+          <Cards/>
+        </div>
       </div>
     );
   }
