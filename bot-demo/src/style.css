@@ -344,22 +344,22 @@ h3 { font-size: 10px; color: var(--text); }
 /* ── Game layout zones ───────────────────────────────────────────── */
 .game-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; perspective:1800px; perspective-origin:50% 20%; }
 .opponent-area, .player-area { display:flex; flex-direction:column; gap:2px; padding:4px 20px; flex:1; min-height:0; overflow:visible; }
-.opponent-area { background:linear-gradient(180deg, rgba(26,0,58,0.25) 0%, rgba(15,0,40,0.15) 60%, transparent 100%); transform:rotateX(6deg); transform-origin:top center; transform-style:flat; border-bottom:2px solid #2d1b6955; box-shadow: inset 0 -8px 16px rgba(0,0,0,0.4); }
-.player-area { background:linear-gradient(0deg, rgba(0,26,0,0.2) 0%, rgba(10,0,24,0.15) 60%, transparent 100%); transform:rotateX(-4deg); transform-origin:bottom center; transform-style:flat; border-top:2px solid #1a003a55; box-shadow: inset 0 8px 16px rgba(0,0,0,0.3); }
+.opponent-area { background:transparent; transform:rotateX(6deg); transform-origin:top center; transform-style:flat; border-bottom:2px solid #2d1b6955; }
+.player-area { background:transparent; transform:rotateX(-4deg); transform-origin:bottom center; transform-style:flat; border-top:2px solid #1a003a55; }
 .area-row { display:flex; gap:6px; align-items:flex-start; flex-wrap:nowrap; overflow:hidden; }
 .ancient-col { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
 .landscape-col { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 .yard-col { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
 .zone-label { font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
-.landscape-zone { display:flex; flex-wrap:wrap; gap:3px; min-height:50px; padding:4px 6px; background:linear-gradient(180deg, rgba(26,0,58,0.5) 0%, rgba(10,0,32,0.5) 100%); border:1px solid var(--green-dark); position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3); overflow:visible; }
+.landscape-zone { display:flex; flex-wrap:wrap; gap:3px; min-height:50px; padding:4px 6px; background:transparent; border:1px solid var(--green-dark); position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3); overflow:visible; }
 .landscape-zone.my-landscape-zone { border-color:var(--green-dark); }
-.my-being-zone, .opp-being-zone { display:flex; flex-wrap:wrap; gap:4px; padding:4px; background:linear-gradient(180deg, rgba(16,0,40,0.5) 0%, rgba(26,0,58,0.5) 100%); border:1px solid var(--border); position:relative; box-shadow:inset 0 4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4); overflow:visible; }
+.my-being-zone, .opp-being-zone { display:flex; flex-wrap:wrap; gap:4px; padding:4px; background:transparent; border:1px solid var(--border); position:relative; box-shadow:inset 0 4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4); overflow:visible; }
 .my-being-zone { min-height:80px; }
 .opp-being-zone { min-height:80px; }
 /* Being zone cards — fit without scrolling */
 .my-being-zone .card, .opp-being-zone .card { width:100px; height:140px; }
 .my-being-zone .card .card-name, .opp-being-zone .card .card-name { font-size:7px; }
-.battlefield-zone { display:flex; flex-wrap:wrap; gap:6px; min-height:80px; padding:6px; background:linear-gradient(180deg, #100028 0%, var(--bg3) 100%); border:1px solid var(--border); box-shadow:inset 0 4px 12px rgba(0,0,0,0.5); overflow:visible; }
+.battlefield-zone { display:flex; flex-wrap:wrap; gap:6px; min-height:80px; padding:6px; background:transparent; border:1px solid var(--border); overflow:visible; }
 .attack-zone { display:flex; flex-wrap:wrap; gap:5px; min-height:50px; max-height:100px; padding:5px; background:#1a000a; border:2px dashed var(--red); flex-shrink:0; }
 .drop-hint { color:var(--red); font-size:8px; align-self:center; padding:4px; opacity:0.6; }
 .opp-being-col { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
@@ -591,7 +591,7 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 
 /* ── Scape Ground phase background ───────────────────────────────────── */
 .game-area { position:relative; }
-.game-area-bg { position:absolute; inset:0; z-index:0; background-size:100% 160%; background-position:center 64%; background-repeat:no-repeat; opacity:0.45; pointer-events:none; transition:background-image 0.6s ease; }
+.game-area-bg { position:absolute; inset:0; z-index:0; background-size:100% 160%; background-position:center calc(64% + 183px); background-repeat:no-repeat; opacity:0.7; pointer-events:none; transition:background-image 0.6s ease; }
 .game-area > *:not(.game-area-bg) { position:relative; z-index:1; }
 
 /* ── Win/Defeat overlay image ────────────────────────────────────────── */
