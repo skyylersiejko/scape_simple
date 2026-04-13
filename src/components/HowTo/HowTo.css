@@ -123,6 +123,35 @@
   font-size: 14px;
 }
 
+@media (max-width: 768px) {
+  .MiddleText {
+    font-size: 12px;
+    padding: 0.75rem;
+  }
+  .Info_Title {
+    font-size: 14px;
+  }
+  .Term {
+    width: 100%;
+    padding: 0 0.5rem;
+  }
+  .Deck_Section {
+    width: 95%;
+  }
+  .Sub_Title {
+    font-size: 14px;
+  }
+  .Scroll {
+    max-height: 60vh;
+    padding: 0.5rem;
+    font-size: 11px;
+  }
+  .Small_Card {
+    width: 60px;
+    height: 90px;
+  }
+}
+
 .Terminology {
   width: 100%;
   background: rgba(61, 61, 61, 0.4);

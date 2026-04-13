@@ -28,7 +28,7 @@
 }
 
 @media (max-width: 768px) {
-  .BotDemoPromo_Button {
-    font-size: 0.65rem;
+  .BotDemoPromo {
+    display: none;
   }
 }

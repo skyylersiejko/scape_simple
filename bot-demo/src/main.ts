@@ -38,16 +38,16 @@ function buildWillowWidget(): string {
       position:absolute;top:16px;right:16px;
       background:var(--bg2);border:2px solid var(--border);
       box-shadow:3px 3px 0 var(--purple),inset 0 0 0 1px rgba(122,58,237,0.15);
-      padding:12px 14px;min-width:200px;max-width:240px;
+      padding:20px 22px;min-width:320px;max-width:380px;
       font-family:'Share Tech Mono',monospace;
     ">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <span style="font-size:14px">🌿</span>
-        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--gold);letter-spacing:1px">WILLOW AI</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:20px">🌿</span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold);letter-spacing:1px">WILLOW AI</span>
         ${statusDot}
       </div>
 
-      <div style="font-size:10px;color:var(--text-dim);line-height:2">
+      <div style="font-size:14px;color:var(--text-dim);line-height:2.2">
         <div style="display:flex;justify-content:space-between">
           <span>Games</span>
           <span style="color:var(--text)">${s.gamesPlayed}</span>
@@ -66,31 +66,31 @@ function buildWillowWidget(): string {
         </div>
       </div>
 
-      <div style="margin:8px 0 6px;height:4px;background:var(--bg3);border:1px solid var(--border)">
+      <div style="margin:12px 0 8px;height:6px;background:var(--bg3);border:1px solid var(--border)">
         <div style="height:100%;width:${learnPct}%;background:var(--purple-light);transition:width .3s"></div>
       </div>
-      <div style="font-size:8px;color:var(--text-dim);text-align:right">${s.patternsLearned} patterns learned</div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:right">${s.patternsLearned} patterns learned</div>
 
-      <div style="margin:10px 0 4px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <span style="font-size:8px;color:var(--text-dim)">Learning Speed</span>
-          <span id="lr-label" style="font-size:8px;color:var(--cyan)">${lrLabel}</span>
+      <div style="margin:14px 0 6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--text-dim)">Learning Speed</span>
+          <span id="lr-label" style="font-size:12px;color:var(--cyan)">${lrLabel}</span>
         </div>
         <input id="lr-slider" type="range" min="0" max="100" value="${lrPct}" style="
-          width:100%;height:4px;-webkit-appearance:none;appearance:none;
+          width:100%;height:6px;-webkit-appearance:none;appearance:none;
           background:linear-gradient(to right,var(--purple-dark),var(--gold));
           border-radius:2px;outline:none;cursor:pointer;
         " />
-        <div style="display:flex;justify-content:space-between;margin-top:2px">
-          <span style="font-size:7px;color:var(--text-dim)">Cautious</span>
-          <span style="font-size:7px;color:var(--text-dim)">Aggressive</span>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:9px;color:var(--text-dim)">Cautious</span>
+          <span style="font-size:9px;color:var(--text-dim)">Aggressive</span>
         </div>
       </div>
 
-      <div style="display:flex;gap:6px;margin-top:10px">
-        <button id="btn-w-import" class="btn-gold" style="flex:1;padding:5px;font-size:8px">⬆ Load</button>
-        <button id="btn-w-export" class="btn-gold" style="flex:1;padding:5px;font-size:8px" ${!hasModel ? 'disabled' : ''}>⬇ Save</button>
-        <button id="btn-w-reset" class="btn-danger" style="flex:1;padding:5px;font-size:8px" ${!hasModel ? 'disabled' : ''}>✕</button>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button id="btn-w-import" class="btn-gold" style="flex:1;padding:8px;font-size:11px">⬆ Load</button>
+        <button id="btn-w-export" class="btn-gold" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>⬇ Save</button>
+        <button id="btn-w-reset" class="btn-danger" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>✕</button>
       </div>
     </div>
   `;

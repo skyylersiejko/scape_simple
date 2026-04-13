@@ -864,6 +864,7 @@ export class BotGameScreen {
       ${this.buildInfoBar(gs, ps, opp, isMyTurn, myHasP, timerHtml)}
 
       <div class="game-area">
+        <div class="game-area-bg" style="background-image:url('${this.getPhaseBackground(gs.phase)}')"></div>
         <!-- Opponent area -->
         <div class="opponent-area ${!myHasP ? 'priority-active' : ''}">
           ${!myHasP ? '<div class="priority-field-label priority-field-bot">⚡ BOT HAS PRIORITY</div>' : ''}
@@ -993,7 +994,7 @@ export class BotGameScreen {
             </div>
           </div>
 
-          <!-- Action bar -->
+          <!-- Action bar (inside player area) -->
           ${this.buildActionBar(gs, isMyTurn, myHasP)}
         </div>
       </div>
@@ -1002,7 +1003,7 @@ export class BotGameScreen {
       <div class="hand-area" id="hand-area" data-drop="hand">
         <div class="deck-widget">
           <img class="deck-widget-img" src="${cardBackUrl}" alt="Deck" />
-          <span class="deck-widget-count">🂠 ${ps.deck.length}</span>
+          <span class="deck-widget-count">${ps.deck.length}</span>
         </div>
         <div class="hand-label">HAND (${orderedHand.length}) — drag to reorder · drag to zone to play · SPACE = pass priority</div>
         <div class="hand-cards" id="hand-cards">
@@ -1101,7 +1102,7 @@ export class BotGameScreen {
     const rightBtns: string[] = [];
 
     if (this.waitingOnPlayer) {
-      leftBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>`);
+      rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>`);
     } else if (isMyTurn && myHasP) {
       if (gs.phase === 'combat' && gs.combatStep === 'attackers') {
         // Attack with All (left) — only if there are eligible attackers not already declared
@@ -1122,17 +1123,13 @@ export class BotGameScreen {
       } else {
         // Pass Priority is always active when shown — every phase change gives each player
         // the opportunity to respond before the phase advances.
-        leftBtns.push(`<button id="btn-pass-priority" class="btn-gold">⚡ Pass Priority</button>`);
+        leftBtns.push(`<button id="btn-rituals" class="btn-gold">🔮 Rituals</button>`);
+        if (ps.yard.length >= 10) {
+          leftBtns.push(`<button id="btn-last-breath" class="btn-danger">💀 Last Breath</button>`);
+        }
+        rightBtns.push(`<button id="btn-pass-priority" class="btn-gold">⚡ Pass Priority</button>`);
         rightBtns.push(`<button id="btn-next-phase" class="btn-green">▶ Next Phase</button>`);
         rightBtns.push(`<button id="btn-end-turn">⏩ End Turn</button>`);
-      }
-
-      // Global ritual buttons (only during play phase, on left)
-      if (gs.phase === 'play1' || gs.phase === 'play2') {
-        leftBtns.push(`<button id="btn-rituals" class="btn-gold" style="font-size:9px;padding:6px 10px">🔮 Rituals</button>`);
-        if (ps.yard.length >= 10) {
-          leftBtns.push(`<button id="btn-last-breath" class="btn-danger" style="font-size:9px;padding:6px 8px">💀 Last Breath</button>`);
-        }
       }
     }
 
@@ -1341,6 +1338,19 @@ export class BotGameScreen {
     `;
   }
 
+  private getPhaseBackground(phase: GamePhase): string {
+    const base = `${import.meta.env.BASE_URL}arena/`;
+    const phaseColorMap: Record<string, string> = {
+      replenish: 'Scape_Ground_lightblue.png',
+      draw: 'Scape_Ground_blue.png',
+      play1: 'Scape_Ground_green.png',
+      combat: 'Scape_Ground_red.png',
+      play2: 'Scape_Ground_green.png',
+      end: 'Scape_Ground_yellow.png',
+    };
+    return base + (phaseColorMap[phase] || 'Scape_Ground_blue.png');
+  }
+
   private buildWinOverlay(winnerUid: string, myUid: string): string {
     const won = winnerUid === myUid;
     let spMessage = '';
@@ -1362,9 +1372,13 @@ export class BotGameScreen {
       }
     }
 
+    const arenaBase = `${import.meta.env.BASE_URL}arena/`;
+    const resultImg = won ? `${arenaBase}Winner.png` : `${arenaBase}Defeat.png`;
+
     return `
       <div class="overlay" id="win-overlay">
         <div class="modal" style="text-align:center">
+          <img src="${resultImg}" alt="${won ? 'Victory' : 'Defeat'}" class="win-overlay-image" />
           <div class="modal-title" style="${won ? 'color:var(--gold)' : 'color:var(--red)'}">
             ${won ? '🏆 VICTORY!' : '💀 DEFEAT!'}
           </div>
