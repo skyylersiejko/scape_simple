@@ -110,7 +110,7 @@
                 ${t.limbo.filter(k=>u[k.defId]?.type==="being").map(k=>this.buildCardEl(k,!1,!1,!1,!0)).join("")}
               </div>
 
-              <div class="zone-label">🌿 LANDS (${o.length}) · ${v}/${f} ${r&&(e.phase==="play1"||e.phase==="play2")?'<span style="color:var(--green-dim);font-size:7px">(drag from hand · right-click sac)</span>':""}</div>
+              <div class="zone-label">🌿 LANDSCAPES (${o.length}) · ${v}/${f} ${r&&(e.phase==="play1"||e.phase==="play2")?'<span style="color:var(--green-dim);font-size:7px">(drag from hand · right-click sac)</span>':""}</div>
               <div class="landscape-zone my-landscape-zone" id="my-landscapes"
                    data-drop="landscape"
                    ondragover="event.preventDefault()" ondrop="">
@@ -186,7 +186,7 @@
       <div class="my-wp-circle" style="--wp-color:${ye}">
         <span class="wp-value" style="color:${ye}">${t.willPower}</span>
       </div>
-    `;const ne=this.container.querySelector("#game-log");ne&&(ne.scrollTop=ne.scrollHeight),this.attachGameListeners(),this.updateBlockLinesSVG()}buildInfoBar(e,n,t,a,r,i){const c=["replenish","draw","play1","combat","play2","end"],l=e.phase==="combat"?` [${e.combatStep.toUpperCase()}]`:"",o=r?'<span class="priority-mine">⚡ YOUR PRIORITY</span>':'<span class="priority-bot">⚡ BOT PRIORITY</span>',d=this.phaseBreakpoint?`🔴 STOP @ ${this.phaseBreakpoint.toUpperCase()}`:"⏸ SET STOP",p=this.phaseBreakpoint?"btn-danger":"btn-gold",h=a?`<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);background:rgba(0,255,65,0.1);padding:2px 6px;border:1px solid var(--green)">⚔ YOUR TURN</span>`:`<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--red);background:rgba(255,45,85,0.1);padding:2px 6px;border:1px solid var(--red)">🤖 BOT TURN</span>`;return`
+    `;const ne=this.container.querySelector("#game-log");ne&&(ne.scrollTop=ne.scrollHeight),this.attachGameListeners(),this.updateBlockLinesSVG()}buildInfoBar(e,n,t,a,r,i){const c=["replenish","draw","play1","combat","play2","end"],l=e.phase==="combat"?` [${e.combatStep.toUpperCase()}]`:"",o=r?'<span class="priority-mine">⚡ YOUR PRIORITY</span>':'<span class="priority-bot">⚡ BOT PRIORITY</span>',d=this.phaseBreakpoint?`🔴 STOP @ ${this.phaseBreakpoint.toUpperCase()}`:"⏸ SET STOP",p=this.phaseBreakpoint?"btn-danger":"btn-gold",h=a?`<span style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--green);background:rgba(0,255,65,0.1);padding:4px 10px;border:1px solid var(--green);letter-spacing:1px">⚔ YOUR TURN</span>`:`<span style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--red);background:rgba(255,45,85,0.1);padding:4px 10px;border:1px solid var(--red);letter-spacing:1px">🤖 BOT TURN</span>`;return`
       <div class="game-info-bar">
         <div class="player-stats">
           <span class="wp-label-opp">BOT</span>

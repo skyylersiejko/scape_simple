@@ -962,7 +962,7 @@ export class BotGameScreen {
                 ${ps.limbo.filter(c => CARD_DEFS[c.defId]?.type === 'being').map(c => this.buildCardEl(c, false, false, false, true)).join('')}
               </div>
 
-              <div class="zone-label">🌿 LANDS (${myLandscapes.length}) · ${landThisTurn}/${maxLand} ${isMyTurn && (gs.phase === 'play1' || gs.phase === 'play2') ? '<span style="color:var(--green-dim);font-size:7px">(drag from hand · right-click sac)</span>' : ''}</div>
+              <div class="zone-label">🌿 LANDSCAPES (${myLandscapes.length}) · ${landThisTurn}/${maxLand} ${isMyTurn && (gs.phase === 'play1' || gs.phase === 'play2') ? '<span style="color:var(--green-dim);font-size:7px">(drag from hand · right-click sac)</span>' : ''}</div>
               <div class="landscape-zone my-landscape-zone" id="my-landscapes"
                    data-drop="landscape"
                    ondragover="event.preventDefault()" ondrop="">
@@ -1061,8 +1061,8 @@ export class BotGameScreen {
     const stopBtnLabel = this.phaseBreakpoint ? `🔴 STOP @ ${this.phaseBreakpoint.toUpperCase()}` : '⏸ SET STOP';
     const stopBtnClass = this.phaseBreakpoint ? 'btn-danger' : 'btn-gold';
     const turnBanner = isMyTurn
-      ? `<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);background:rgba(0,255,65,0.1);padding:2px 6px;border:1px solid var(--green)">⚔ YOUR TURN</span>`
-      : `<span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--red);background:rgba(255,45,85,0.1);padding:2px 6px;border:1px solid var(--red)">🤖 BOT TURN</span>`;
+      ? `<span style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--green);background:rgba(0,255,65,0.1);padding:4px 10px;border:1px solid var(--green);letter-spacing:1px">⚔ YOUR TURN</span>`
+      : `<span style="font-family:'Press Start 2P',monospace;font-size:11px;color:var(--red);background:rgba(255,45,85,0.1);padding:4px 10px;border:1px solid var(--red);letter-spacing:1px">🤖 BOT TURN</span>`;
 
     return `
       <div class="game-info-bar">
