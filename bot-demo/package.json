@@ -3,13 +3,53 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "watch": "tsc && vite build --watch",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "ELECTRON_DEV=true electron .",
+    "electron:build": "tsc && vite build --config vite.electron.config.ts && electron-builder",
+    "electron:preview": "vite build --config vite.electron.config.ts && electron ."
+  },
+  "build": {
+    "appId": "com.scape.botdemo",
+    "productName": "Scape",
+    "icon": "build/icons/icon",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icons/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "public/arena",
+        "to": "arena"
+      },
+      {
+        "from": "public/cards",
+        "to": "cards"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.games",
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "Scape-Setup-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
   },
   "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
     "typescript": "~5.9.3",
     "vite": "^7.3.1"
   }

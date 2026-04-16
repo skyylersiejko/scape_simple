@@ -6,3 +6,9 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Electron build artifacts
+bot-demo/release/
+bot-demo/dist/
+bot-demo/build/icon.iconset/
+bot-demo/node_modules/
