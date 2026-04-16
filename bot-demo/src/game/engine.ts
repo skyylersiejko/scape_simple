@@ -236,25 +236,9 @@ export function advancePhase(state: GameState, uid: string): GameState {
       });
       if (!hasValidBlockers) {
         // No valid blocking available — skip directly to pre-damage.
-        // Inline the pre-damage logic (same as the combatStep === 'pre-damage' branch below)
-        // to avoid a recursive call and keep the control flow explicit.
-        const preDamageState = { ...state, combatStep: 'pre-damage' as const, priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
-        if (preDamageState.pendingDamageChoice) return preDamageState;
-        const attackerUid = preDamageState.currentTurn;
-        const defenderUid2 = preDamageState.player1 === attackerUid ? preDamageState.player2 : preDamageState.player1;
-        const atkPs2 = getPlayerState(preDamageState, attackerUid);
-        const defPs2 = getPlayerState(preDamageState, defenderUid2);
-        const hasUnblockedWithPower2 = atkPs2.attackers.some(atkId => {
-          const blocked = Object.values(defPs2.blockers).includes(atkId);
-          if (blocked) return false;
-          const card = atkPs2.battlefield.find(c => c.id === atkId);
-          return card ? (CARD_DEFS[card.defId]?.power ?? 0) > 0 : false;
-        });
-        if (hasUnblockedWithPower2) {
-          return { ...preDamageState, pendingDamageChoice: true };
-        }
-        const afterDmg2 = resolveCombat(preDamageState);
-        return { ...afterDmg2, combatStep: 'none', phase: 'play2', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+        // Return pre-damage state and let the caller handle priority passing
+        // before combat damage resolves.
+        return { ...state, combatStep: 'pre-damage' as const, priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
       }
       return { ...state, combatStep: 'blocks', priorityPlayer: oppUid, stackPassedOnce: false, stackPassPriority: undefined };
     }

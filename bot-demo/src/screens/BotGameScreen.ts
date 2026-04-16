@@ -51,6 +51,9 @@ export class BotGameScreen {
   private playerInactivityTimerId: ReturnType<typeof setTimeout> | null = null;
   private botAutoPassScheduled = false;
 
+  // Bot priority sanity-check watchdog: periodically ensures the bot isn't stuck
+  private botSanityTimerId: ReturnType<typeof setInterval> | null = null;
+
   // UI state
   private gamePhase: 'ancient-selection' | 'playing' = 'ancient-selection';
   private showGraveyard: 'mine' | 'opp' | null = null;
@@ -118,6 +121,10 @@ export class BotGameScreen {
       }
     };
     document.addEventListener('keydown', this.spacebarHandler);
+
+    // Bot priority sanity-check watchdog: every 3 seconds, verify that if the bot
+    // holds priority an action timer is actually running. If not, kick-start one.
+    this.botSanityTimerId = setInterval(() => this.botPrioritySanityCheck(), 3000);
 
     this.render();
   }
@@ -217,6 +224,18 @@ export class BotGameScreen {
         newState.combatStep !== 'blocks' &&
         newState.stack.length === 0) {
       this.botAutoPassPriority();
+      return;
+    }
+
+    // If bot has priority during player's turn with items on the stack,
+    // trigger the bot stack response so the bot doesn't freeze.
+    // This handles cases like the player using an ancient after playing a being
+    // (which transfers priority to the bot while the being is still on the stack).
+    if (!this.botRunning && !this.waitingOnPlayer &&
+        newState.currentTurn === myUid &&
+        newState.priorityPlayer !== myUid &&
+        newState.stack.length > 0) {
+      this.triggerBotStackResponse();
       return;
     }
 
@@ -432,11 +451,45 @@ export class BotGameScreen {
       const gs = this.gameState;
       const myUid = this.currentUser.uid;
       if (gs.currentTurn !== myUid || gs.priorityPlayer === myUid || this.botRunning || gs.winner) return;
+
+      // Pre-damage: if the player already passed (stackPassedOnce), bot passing
+      // means both players have passed priority → resolve combat damage.
+      if (gs.combatStep === 'pre-damage' && gs.stackPassedOnce) {
+        const next = advancePhase(gs, myUid);
+        if (next !== gs) this.setState(next);
+        return;
+      }
+
       // Bot passes priority back to player
       this.gameState = { ...gs, priorityPlayer: myUid, stackPassedOnce: false, stackPassPriority: undefined };
       this.render();
       this.startPlayerInactivityTimer();
     }, botPriorityMs);
+  }
+
+  // Periodic sanity check: ensures the bot isn't stuck holding priority without an
+  // action timer running. This acts as a safety net for edge cases the normal flow
+  // might miss (e.g., after ancient use kills a being while the stack is active).
+  private botPrioritySanityCheck(): void {
+    const gs = this.gameState;
+    if (gs.winner || this.gamePhase !== 'playing') return;
+    const myUid = this.currentUser.uid;
+
+    // Only intervene when the bot holds priority during the player's turn
+    // and no other mechanism is already handling it.
+    if (gs.currentTurn !== myUid) return;               // bot's turn handled by runBotTurnAsync
+    if (gs.priorityPlayer === myUid) return;             // player has priority, nothing to fix
+    if (this.botRunning || this.waitingOnPlayer) return;  // already in progress
+    if (this.botAutoPassScheduled) return;                // auto-pass already scheduled
+
+    // Bot has priority on player's turn with nothing driving it — kick-start recovery
+    if (gs.stack.length > 0) {
+      console.warn('[SanityCheck] Bot has priority with stack items — triggering stack response');
+      this.triggerBotStackResponse();
+    } else {
+      console.warn('[SanityCheck] Bot has priority with empty stack — triggering auto-pass');
+      this.botAutoPassPriority();
+    }
   }
 
   // Choose the damage mode that maximises damage for the bot
@@ -515,11 +568,11 @@ export class BotGameScreen {
       this.render();
       await this.delay(600);
 
-      // Advance: blocks → pre-damage → combat resolves (or awaits player damage choice) → play2
+      // Advance: blocks → pre-damage (priority passes before combat damage resolves)
       gs = advancePhase(this.gameState, myUid);
-      gs = advancePhase(gs, myUid);
-      // If there are unblocked attackers, pendingDamageChoice will be set.
-      // The modal will be shown in render(); player makes the choice via UI buttons.
+      // Stop at pre-damage — let the player pass priority before damage resolves.
+      // When player passes, handlePassPriority routes through pre-damage priority flow,
+      // which gives the bot a chance to respond, then both passing resolves combat.
       this.gameState = gs;
       this.render();
     } catch (e) {
@@ -586,8 +639,24 @@ export class BotGameScreen {
           // Wait for player to declare blockers (up to 30s), then advance
           gs = await this.waitForPlayerPriority(30000);
           gs = advancePhase(gs, BOT_UID); // blocks → pre-damage
+          this.gameState = gs;
+          this.render();
+          await this.delay(400);
+        }
+
+        // Pre-damage priority: give player a chance to act before combat damage resolves
+        if (gs.combatStep === 'pre-damage') {
+          gs = await this.waitForPlayerPriority(30000);
+          // Resolve any spells the player may have cast during pre-damage priority
+          if (gs.stack.length > 0) {
+            gs = resolveEntireStack(gs);
+            this.gameState = gs;
+            this.render();
+            await this.delay(400);
+          }
           gs = advancePhase(gs, BOT_UID); // pre-damage → resolves or sets pendingDamageChoice
         }
+
         // Bot auto-chooses best damage mode if unblocked attackers are present
         if (gs.pendingDamageChoice) {
           const mode = this.botChooseDamageMode(gs);
@@ -1116,6 +1185,9 @@ export class BotGameScreen {
         rightBtns.push(`<button id="btn-done-attackers" class="btn-danger" style="font-size:11px;padding:8px 16px">✅ Done Declaring Attackers</button>`);
       } else if (gs.phase === 'combat' && gs.combatStep === 'blocks') {
         // blocks is opponent's priority — nothing for active player
+      } else if (gs.phase === 'combat' && gs.combatStep === 'pre-damage') {
+        // Pre-damage priority: player can use ancients or pass before damage resolves
+        rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (before damage)</button>`);
       } else if (gs.phase === 'combat' && gs.combatStep === 'pre') {
         rightBtns.push(`<button id="btn-next-phase" class="btn-green">▶ Enter Attackers Phase</button>`);
       } else if (gs.phase === 'combat' && gs.combatStep === 'none') {
@@ -2495,7 +2567,22 @@ export class BotGameScreen {
     }
 
     // Stack is empty and player has priority → pass priority advances the phase
+    // Pre-damage priority: pass priority to bot before combat damage resolves
     if (gs.currentTurn === myUid && gs.priorityPlayer === myUid) {
+      if (gs.stack.length === 0 && gs.combatStep === 'pre-damage') {
+        if (!gs.stackPassedOnce) {
+          // Player passes priority at pre-damage: give bot a chance to act before damage
+          this.gameState = { ...gs, priorityPlayer: BOT_UID, stackPassedOnce: true };
+          this.render();
+          this.botAutoPassPriority();
+          return;
+        }
+        // Both passed: resolve combat damage
+        const next = advancePhase(gs, myUid);
+        if (next !== gs) this.setState(next);
+        return;
+      }
+
       const next = advancePhase(gs, myUid);
       if (next !== gs) this.setState(next);
     }
@@ -3205,6 +3292,7 @@ export class BotGameScreen {
     if (this.priorityTimeoutId !== null) clearTimeout(this.priorityTimeoutId);
     if (this.ritualPopupTimerId !== null) clearTimeout(this.ritualPopupTimerId);
     if (this.turnPopupTimerId !== null) clearTimeout(this.turnPopupTimerId);
+    if (this.botSanityTimerId !== null) clearInterval(this.botSanityTimerId);
     this.clearPlayerInactivityTimer();
     this.clearPriorityCountdown();
     if (this.mouseMoveHandler) {
