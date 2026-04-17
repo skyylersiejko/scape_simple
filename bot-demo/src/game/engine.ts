@@ -663,18 +663,25 @@ export function declareAttacker(state: GameState, uid: string, cardId: string): 
   if (!card) return state;
   const def = CARD_DEFS[card.defId];
   if (!def || def.type !== 'being') return state;
-  if (card.exhausted && !def.isFlyer) return state;
+  const alreadyDeclared = ps.attackers.includes(cardId);
+  if (card.exhausted && !def.isFlyer && !alreadyDeclared) return state;
   // Wasp must wait one full turn before it can attack
   if (def.id === 'wasp' && card.summonedThisTurn) return state;
 
   const attackers = [...ps.attackers];
   const idx = attackers.indexOf(cardId);
+  let battlefield = [...ps.battlefield];
+  const bfIdx = battlefield.findIndex(c => c.id === cardId);
   if (idx !== -1) {
     attackers.splice(idx, 1);
+    // Untap and unexhaust when removed from attackers
+    if (bfIdx !== -1) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: false };
   } else {
     attackers.push(cardId);
+    // Tap and exhaust when declared as attacker
+    if (bfIdx !== -1) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: true };
   }
-  return setPlayerState(state, uid, { ...ps, attackers });
+  return setPlayerState(state, uid, { ...ps, battlefield, attackers });
 }
 
 export function declareBlocker(state: GameState, uid: string, blockerId: string, attackerId: string): GameState {
