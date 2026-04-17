@@ -18,7 +18,7 @@ function BotDemoPromo() {
         target={"_blank"}
         rel={"noopener noreferrer"}
       >
-        Play Demo
+        Play
       </a>
       <div className={"BotDemoPromo_Downloads"}>
         <a className={"BotDemoPromo_Install"} href={MAC_URL} download>

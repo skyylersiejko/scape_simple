@@ -32,7 +32,8 @@
     "bot-demo:publish": "npm run bot-demo:build",
     "bot-demo:sync": "npm run bot-demo:build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "release": "./release.sh"
   },
   "browserslist": [
     ">0.2%",

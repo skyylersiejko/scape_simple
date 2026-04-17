@@ -51,6 +51,15 @@ class About extends React.Component {
 
         </div>
 
+         <div className={"Heading"}>Willow.ai</div>
+        <div className={"Text"}>
+              Willow is Scape's very own Game AI. Every game you play learns from your moves and gets better and smarter with each playthrough.
+Willow was built to enable players to practice and learn at their own pace. Players can get ready for upcoming tournaments or just have fun.
+With a new type of game comes a new way of playing and practicing. You can even delete, download, and upload other players' Willow models,
+giving you a unique experience every time. Don't forget you can change the aggressiveness of your Willow to make it more or less challenging. Good luck!
+        </div>
+
+
         <div style = {{color: "white", fontStyle:"italic", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"20px 0", maxWidth:"100%", margin:"0 auto"  }}>"I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the games integrity."</div>
 
 
