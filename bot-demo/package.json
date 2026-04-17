@@ -1,7 +1,7 @@
 {
   "name": "scape-bot-demo",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -37,11 +37,12 @@
     },
     "mac": {
       "category": "public.app-category.games",
-      "target": ["dmg"]
+      "target": ["dmg"],
+      "artifactName": "Scape-${version}-mac.${ext}"
     },
     "win": {
       "target": ["nsis"],
-      "artifactName": "Scape-Setup-${version}-${arch}.${ext}"
+      "artifactName": "Scape-Setup-${version}-win.${ext}"
     },
     "linux": {
       "target": ["AppImage"]

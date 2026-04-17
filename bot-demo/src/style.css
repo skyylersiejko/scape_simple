@@ -15,7 +15,7 @@
   --red: #ff2d55;
   --gold: #ffd700;
   --text: #e0d0ff;
-  --text-dim: #9b80d0;
+  --text-dim: #ffffff;
   --border: #4a0e8f;
   --border-bright: #7c3aed;
   --card-bg: #1a003a;
@@ -228,7 +228,7 @@ h3 { font-size: 10px; color: var(--text); }
 .card-dots { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; flex-wrap: wrap; max-width: 20px; }
 .dot { width: 4px; height: 4px; background: var(--gold); border-radius: 50%; }
 .game-screen { height:100vh; height:100dvh; width:100vw; max-width:1920px; max-height:1200px; margin:0 auto; display:flex; flex-direction:column; background:linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); padding:0; overflow:hidden; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-.area-label { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+.area-label { font-family: 'Press Start 2P', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
 .game-info-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: nowrap; gap: 8px; flex-shrink:0; }
 .player-stats { display: flex; align-items: center; gap: 12px; font-size: 11px; }
 .wp-bar { display: flex; align-items: center; gap: 6px; }
@@ -285,7 +285,7 @@ h3 { font-size: 10px; color: var(--text); }
 ::-webkit-scrollbar-thumb { background: var(--purple); border: 1px solid var(--border); }
 ::-webkit-scrollbar-thumb:hover { background: var(--purple-light); }
 .tooltip-container { position: relative; }
-.tooltip { display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: var(--bg2); border: 2px solid var(--border); padding: 8px; width: 160px; font-size: 10px; z-index: 200; pointer-events: none; color: var(--text); box-shadow: 4px 4px 0 rgba(0,0,0,0.6); }
+.tooltip { display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: var(--bg2); border: 2px solid var(--border); padding: 8px; width: 180px; font-size: 14px; z-index: 200; pointer-events: none; color: #fff; box-shadow: 4px 4px 0 rgba(0,0,0,0.6); }
 .tooltip-container:hover .tooltip { display: block; }
 .overlay { position: fixed; inset: 0; background: #00001588; display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal { background: var(--bg2); border: 2px solid var(--purple-light); padding: 24px; width: 380px; box-shadow: 8px 8px 0 var(--purple-dark), var(--glow-purple); }
@@ -343,29 +343,31 @@ h3 { font-size: 10px; color: var(--text); }
 
 /* ── Game layout zones ───────────────────────────────────────────── */
 .game-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; perspective:1800px; perspective-origin:50% 20%; }
-.opponent-area, .player-area { display:flex; flex-direction:column; gap:2px; padding:4px 20px; flex:1; min-height:0; overflow:visible; }
+.opponent-area, .player-area { display:flex; flex-direction:column; gap:2px; padding:4px 20px; flex:1; min-height:0; overflow:hidden; }
 .opponent-area { background:transparent; transform:rotateX(6deg); transform-origin:top center; transform-style:flat; border-bottom:2px solid #2d1b6955; }
 .player-area { background:transparent; transform:rotateX(-4deg); transform-origin:bottom center; transform-style:flat; border-top:2px solid #1a003a55; }
-.area-row { display:flex; gap:6px; align-items:flex-start; flex-wrap:nowrap; overflow:hidden; }
+.area-row { display:flex; gap:6px; align-items:flex-start; flex-wrap:nowrap; overflow:visible; flex:1; min-height:0; }
 .ancient-col { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
 .landscape-col { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 .yard-col { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
-.zone-label { font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
-.landscape-zone { display:flex; flex-wrap:wrap; gap:3px; min-height:50px; padding:4px 6px; background:transparent; border:1px solid var(--green-dark); position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3); overflow:visible; }
+.zone-label { font-family:'Press Start 2P',monospace; font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+.landscape-zone { display:flex; flex-wrap:wrap; gap:3px; min-height:40px; padding:4px 6px; background:transparent; border:1px solid var(--green-dark); position:relative; box-shadow:inset 0 2px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3); overflow:visible; }
 .landscape-zone.my-landscape-zone { border-color:var(--green-dark); }
 .my-being-zone, .opp-being-zone { display:flex; flex-wrap:wrap; gap:4px; padding:4px; background:transparent; border:1px solid var(--border); position:relative; box-shadow:inset 0 4px 12px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4); overflow:visible; }
-.my-being-zone { min-height:80px; }
-.opp-being-zone { min-height:80px; }
+.my-being-zone { min-height:60px; }
+.opp-being-zone { min-height:60px; }
 /* Being zone cards — fit without scrolling */
-.my-being-zone .card, .opp-being-zone .card { width:100px; height:140px; }
+.my-being-zone .card, .opp-being-zone .card { width:90px; height:126px; }
 .my-being-zone .card .card-name, .opp-being-zone .card .card-name { font-size:7px; }
 .battlefield-zone { display:flex; flex-wrap:wrap; gap:6px; min-height:80px; padding:6px; background:transparent; border:1px solid var(--border); overflow:visible; }
 .attack-zone { display:flex; flex-wrap:wrap; gap:5px; min-height:50px; max-height:100px; padding:5px; background:#1a000a; border:2px dashed var(--red); flex-shrink:0; }
+.opp-attack-zone { justify-content:center; }
+.opp-attack-zone .card { width:80px; height:112px; }
 .drop-hint { color:var(--red); font-size:8px; align-self:center; padding:4px; opacity:0.6; }
 .opp-being-col { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
 
 /* Landscape zone for player bottom row — larger than opponent's */
-.my-landscape-zone { min-height:70px !important; overflow:visible !important; }
+.my-landscape-zone { min-height:50px !important; overflow:visible !important; }
 
 /* Drag-drop feedback */
 .drag-over { border-color:var(--green) !important; box-shadow:0 0 12px var(--green) !important; background:rgba(0,255,65,0.05) !important; }
@@ -382,13 +384,13 @@ h3 { font-size: 10px; color: var(--text); }
 .landscape-zone .card .card-dots { display: none; }
 
 /* ── Hand area ─────────────────────────────────────────────────────── */
-.hand-area { padding:10px 8px 6px; background:linear-gradient(180deg, var(--bg2) 0%, #0a001a 100%); border-top:2px solid var(--border); height:210px; flex-shrink:0; transform:perspective(900px) rotateX(-6deg); transform-origin:bottom center; box-shadow:0 -8px 24px rgba(0,0,0,0.5), inset 0 8px 16px rgba(0,0,0,0.3); position:relative; display:flex; flex-direction:column; align-items:center; overflow:visible; }
+.hand-area { padding:10px 8px 6px; background:linear-gradient(180deg, var(--bg2) 0%, #0a001a 100%); border-top:2px solid var(--border); height:190px; flex-shrink:0; transform:perspective(900px) rotateX(-6deg); transform-origin:bottom center; box-shadow:0 -8px 24px rgba(0,0,0,0.5), inset 0 8px 16px rgba(0,0,0,0.3); position:relative; display:flex; flex-direction:column; align-items:center; overflow:visible; }
 
 /* ── Deck image (bottom-left during play) ─────────────────────────── */
 .deck-widget { position:absolute; bottom:20px; left:30px; display:flex; flex-direction:column; align-items:center; z-index:10; pointer-events:none; }
 .deck-widget-img { width:125px; height:175px; object-fit:cover; border:2px solid var(--purple); box-shadow:3px 3px 0 #000, 0 0 8px rgba(124,58,237,0.3); image-rendering:auto; }
 .deck-widget-count { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Press Start 2P',monospace; font-size:14px; color:var(--gold); text-shadow:0 0 8px rgba(0,0,0,0.9), 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; pointer-events:none; z-index:1; }
-.hand-label { font-family:'Press Start 2P',monospace; font-size:6px; color:var(--text-dim); margin-bottom:4px; text-align:center; }
+.hand-label { font-family:'Press Start 2P',monospace; font-size:10px; color:var(--text-dim); margin-bottom:4px; text-align:center; }
 .hand-cards { display:flex; gap:4px; overflow-x:auto; align-items:flex-end; justify-content:center; padding-bottom:2px; height:calc(100% - 18px); max-width:100%; }
 
 /* ── WP Circles (floating over field) ──────────────────────────────── */
@@ -522,7 +524,7 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 .center-turn-label { font-family:'Press Start 2P',monospace; font-size:13px; padding:5px 14px; border:2px solid currentColor; letter-spacing:2px; }
 .center-turn-label.turn-yours { color:var(--green); text-shadow:var(--glow-green); background:rgba(0,255,65,0.15); border-color:var(--green); box-shadow:0 0 12px rgba(0,255,65,0.4); }
 .center-turn-label.turn-bot { color:var(--red); text-shadow:0 0 10px var(--red); background:rgba(255,45,85,0.15); border-color:var(--red); box-shadow:0 0 12px rgba(255,45,85,0.4); }
-.center-phase-desc { font-size:8px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; }
+.center-phase-desc { font-size:12px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; }
 
 /* ── Priority timer ─────────────────────────────────────────────────── */
 .priority-timer { font-family:'Press Start 2P',monospace; font-size:9px; padding:2px 6px; border:1px solid currentColor; background:rgba(0,0,0,0.4); }
@@ -536,8 +538,8 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 .ritual-zone-label { color:var(--purple-bright) !important; font-size:7px !important; }
 .ritual-card-slot { position:relative; display:flex; align-items:center; gap:2px; }
 .ritual-pos { font-family:'Press Start 2P',monospace; font-size:7px; color:var(--purple-bright); min-width:10px; text-align:center; }
-.ritual-hint { font-size:8px; color:var(--text-dim); text-align:center; padding:4px; line-height:1.5; }
-.ritual-hint-active { font-size:7px; color:var(--gold); text-align:center; padding:2px 4px; line-height:1.5; font-family:'Press Start 2P',monospace; animation:ritualNamePulse 2s infinite; max-width:90px; word-break:break-word; }
+.ritual-hint { font-size:12px; color:#fff; text-align:center; padding:4px; line-height:1.5; }
+.ritual-hint-active { font-size:11px; color:var(--gold); text-align:center; padding:2px 4px; line-height:1.5; font-family:'Press Start 2P',monospace; animation:ritualNamePulse 2s infinite; max-width:110px; word-break:break-word; }
 @keyframes ritualNamePulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
 .ritual-zone .card { width: 80px; height: 112px; }
 .ritual-zone .card .card-name { font-size:6px; }
@@ -613,17 +615,20 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
 
 /* Proportional zone scaling for wide screens */
 @media (min-width: 1400px) {
-  .my-being-zone .card, .opp-being-zone .card { width: 140px; height: 196px; }
-  .my-landscape-zone .card { width: 95px; height: 134px; }
-  .hand-card { width: 135px; height: 189px; }
-  .hand-area { height: 250px; }
+  .my-being-zone .card, .opp-being-zone .card { width: 120px; height: 168px; }
+  .my-landscape-zone .card { width: 85px; height: 119px; }
+  .hand-card { width: 125px; height: 175px; }
+  .hand-area { height: 230px; }
 }
 
 /* Ensure the body fills the game window without scrollbars */
 @media (max-height: 700px) {
-  .hand-area { height: 170px; }
+  .hand-area { height: 160px; }
+  .hand-card { width: 100px; height: 140px; }
   .game-info-bar { padding: 2px 8px; }
-  .log-bar { height: 24px; }
+  .log-bar { height: 22px; }
+  .my-being-zone .card, .opp-being-zone .card { width: 80px; height: 112px; }
+  .my-being-zone, .opp-being-zone { max-height: 130px; }
 }
 
 /* ── Touch-friendly defaults for iOS / iPadOS ────────────────────── */
@@ -731,9 +736,9 @@ button.btn-gold:hover { background:#5a3f00; box-shadow:1px 1px 0 #1a1000, var(--
   .hand-area { height: 150px; }
   .hand-card { width: 75px; height: 105px; }
   .my-being-zone .card, .opp-being-zone .card { width: 70px; height: 98px; }
-  .my-being-zone, .opp-being-zone { min-height: 60px; }
-  .landscape-zone { min-height: 40px; }
-  .my-landscape-zone { min-height: 50px !important; }
+  .my-being-zone, .opp-being-zone { min-height: 50px; max-height: 110px; }
+  .landscape-zone { min-height: 35px; }
+  .my-landscape-zone { min-height: 40px !important; }
   .center-phase-banner { padding: 3px 0; }
 }
 

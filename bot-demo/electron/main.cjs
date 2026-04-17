@@ -9,8 +9,8 @@ app.setName('Scape');
 function createWindow() {
   const iconPath = path.join(__dirname, '..', 'build', 'icons', 'icon.png');
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1440,
+    height: 900,
     minWidth: 960,
     minHeight: 600,
     title: 'Scape',

@@ -154,13 +154,25 @@ export class BotGameScreen {
     this.clearPlayerInactivityTimer();
 
     // If bot was waiting for player priority and the player just took a priority action
-    // (e.g. used their ancient, which passes priority to bot), auto-resolve so the bot can continue.
+    // (e.g. cast a spell, which passes priority to bot), auto-resolve so the bot can continue.
     // We intentionally compare the OLD state (this.gameState) to the NEW state (newState) to detect
     // the moment the player's priority was transferred away as a result of their action.
+    // Exception: during pre-damage, if the player took an action (cast spell or used ancient),
+    // don't auto-resolve — let priority return to the player so they can act more or pass.
+    const isPreDamage = newState.phase === 'combat' && newState.combatStep === 'pre-damage';
     if (this.waitingOnPlayer &&
         this.gameState.priorityPlayer === myUid &&
-        newState.priorityPlayer !== myUid) {
+        newState.priorityPlayer !== myUid &&
+        !isPreDamage) {
       setTimeout(() => this.resolvePlayerPriority(), 500);
+    }
+
+    // During bot's turn pre-damage: after the stack empties from a player spell resolution,
+    // return priority to the player so they can cast more spells or pass.
+    const stackJustEmptied = this.gameState.stack.length > 0 && newState.stack.length === 0;
+    if (this.waitingOnPlayer && isPreDamage && stackJustEmptied &&
+        newState.currentTurn !== myUid && newState.priorityPlayer !== myUid) {
+      newState = { ...newState, priorityPlayer: myUid, stackPassedOnce: false, stackPassPriority: undefined };
     }
 
     // Detect turn change — show popup
@@ -978,9 +990,17 @@ export class BotGameScreen {
             </div>
             <div class="yard-col">
               <button class="yard-btn" id="btn-opp-yard">🪦 ${opp.yard.length}</button>
-              <div style="font-size:7px;color:var(--text-dim)">YARD</div>
+              <div style="font-size:11px;color:var(--text-dim)">YARD</div>
             </div>
           </div>
+          ${!isMyTurn && gs.phase === 'combat' && opp.attackers.length > 0 ? `
+          <div class="zone-label" style="color:var(--red);text-align:center">⚔ BOT ATTACKERS</div>
+          <div class="attack-zone opp-attack-zone">
+            ${opp.attackers.map(id => {
+              const c = opp.battlefield.find(b => b.id === id);
+              return c ? this.buildCardEl(c, false, false, true) : '';
+            }).join('')}
+          </div>` : ''}
         </div>
 
         <!-- Center phase banner -->
@@ -1001,7 +1021,7 @@ export class BotGameScreen {
               ${ps.ancient ? this.buildCardEl(ps.ancient, isMyTurn, true) : this.buildEmptyAncient()}
               <div class="zone-label">ANCIENT</div>
               ${isMyTurn && ps.ancient && !ps.ancient.exhausted ? '<span style="font-size:7px;color:var(--gold)">(dbl-click · right-click sac)</span>' : ''}
-              ${!ps.ancient ? '<div style="font-size:7px;color:var(--text-dim)">SACRIFICED</div>' : ''}
+              ${!ps.ancient ? '<div style="font-size:11px;color:var(--text-dim)">SACRIFICED</div>' : ''}
             </div>
 
             <!-- Center: Beings + Landscape stacked -->
@@ -1053,12 +1073,12 @@ export class BotGameScreen {
                   `).join('')}
                   ${ps.ritualZone.length === 0 ? '<div class="ritual-hint">Drag 🌿/🐉/✨<br>to form rituals</div>' : ''}
                 </div>
-                <div style="font-size:7px;color:var(--text-dim);text-align:center">${ps.ritualZone.length}/${ritualMaxLen}</div>
+                <div style="font-size:11px;color:var(--text-dim);text-align:center">${ps.ritualZone.length}/${ritualMaxLen}</div>
               </div>
               <div class="yard-col">
                 <button class="yard-btn" id="btn-my-yard">🪦 ${ps.yard.length}</button>
-                <div style="font-size:7px;color:var(--text-dim)">YARD</div>
-                <div style="font-size:7px;color:var(--text-dim)">EXL: ${ps.exile.length}</div>
+                <div style="font-size:11px;color:var(--text-dim)">YARD</div>
+                <div style="font-size:11px;color:var(--text-dim)">EXL: ${ps.exile.length}</div>
               </div>
             </div>
           </div>
@@ -1137,12 +1157,12 @@ export class BotGameScreen {
       <div class="game-info-bar">
         <div class="player-stats">
           <span class="wp-label-opp">BOT</span>
-          <span style="font-size:9px;color:var(--text-dim)">H:${opp.hand.length} D:${opp.deck.length}</span>
+          <span style="font-size:13px;color:var(--text-dim)">H:${opp.hand.length} D:${opp.deck.length}</span>
         </div>
         <div class="phase-col">
           <div class="phase-indicator">
             ${phases.map(p => `<span class="phase-step ${gs.phase === p ? 'active' : ''}">${p.slice(0, 4).toUpperCase()}</span>`).join('')}
-            <span style="color:var(--text-dim);font-size:7px">${combatStepLabel}</span>
+            <span style="color:var(--text-dim);font-size:11px">${combatStepLabel}</span>
           </div>
           <div class="turn-info">
             ${turnBanner}
@@ -1152,7 +1172,7 @@ export class BotGameScreen {
           </div>
         </div>
         <div class="player-stats">
-          <span style="font-size:9px;color:var(--text-dim)">H:${ps.hand.length} D:${ps.deck.length}</span>
+          <span style="font-size:13px;color:var(--text-dim)">H:${ps.hand.length} D:${ps.deck.length}</span>
           <span class="wp-label-player">YOU</span>
           <button id="btn-settings" class="btn-settings" title="Settings">⚙</button>
         </div>
@@ -1236,7 +1256,7 @@ export class BotGameScreen {
             <div class="stack-entry-info">
               <span class="stack-badge">${gs.stack.length - i}</span>
               <span>${def?.name ?? '?'} (${entry.playerId === myUid ? 'YOU' : 'BOT'})</span>
-              ${entry.target ? `<span style="color:var(--text-dim);font-size:9px">→ ${entry.target}</span>` : ''}
+              ${entry.target ? `<span style="color:var(--text-dim);font-size:13px">→ ${entry.target}</span>` : ''}
             </div>
           </div>
         </div>
@@ -1251,7 +1271,7 @@ export class BotGameScreen {
       <div class="stack-popup">
         <div class="stack-title">📚 STACK</div>
         ${priorityInfo}
-        <div class="stack-list">${stackItems || '<div style="color:var(--text-dim);font-size:9px">Empty</div>'}</div>
+        <div class="stack-list">${stackItems || '<div style="color:var(--text-dim);font-size:13px">Empty</div>'}</div>
         ${this.waitingOnPlayer ? `<button id="btn-pass-in-stack" class="btn-gold w-full mt-8">⚡ Pass Priority</button>` : ''}
       </div>
     `;
@@ -1285,7 +1305,7 @@ export class BotGameScreen {
         <div class="ritual-popup-title">🔮 RITUAL (${ps.ritualZone.length})</div>
         <div class="ritual-popup-list">${items}</div>
         ${hintHtml}
-        <div style="font-size:7px;color:var(--text-dim);margin-top:4px">Right-click card to remove</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Right-click card to remove</div>
       </div>
     `;
   }
@@ -1301,7 +1321,7 @@ export class BotGameScreen {
           <div class="modal-title">🪦 ${label} (${ps.yard.length} cards)</div>
           <div class="graveyard-grid">
             ${ps.yard.length === 0
-              ? '<div style="color:var(--text-dim);font-size:11px">Empty graveyard</div>'
+              ? '<div style="color:var(--text-dim);font-size:15px">Empty graveyard</div>'
               : ps.yard.map(c => this.buildCardEl(c, false, false)).join('')
             }
           </div>
@@ -1316,11 +1336,11 @@ export class BotGameScreen {
       <div class="overlay" id="ancient-choice-overlay">
         <div class="modal">
           <div class="modal-title" style="color:var(--gold)">🌱 Grow: Choose New Ancient</div>
-          <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px">A Landscape entered play. Choose your new Ancient:</p>
+          <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">A Landscape entered play. Choose your new Ancient:</p>
           <div class="ancient-choice-grid">
             ${ANCIENTS.map(defId => {
               const def = CARD_DEFS[defId];
-              return `<button class="btn-ancient-choice" data-defid="${defId}">${def?.name}<br><span style="font-size:8px;color:var(--text-dim)">${def?.description}</span></button>`;
+              return `<button class="btn-ancient-choice" data-defid="${defId}">${def?.name}<br><span style="font-size:12px;color:#fff">${def?.description}</span></button>`;
             }).join('')}
           </div>
         </div>
@@ -1329,7 +1349,7 @@ export class BotGameScreen {
   }
 
   private buildEmptyAncient(): string {
-    return `<div style="width:112px;height:158px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-dim);text-align:center">NO<br>ANCIENT</div>`;
+    return `<div style="width:112px;height:158px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-dim);text-align:center">NO<br>ANCIENT</div>`;
   }
 
   private buildCardEl(card: CardInstance, interactive: boolean, isAncient: boolean, isAttacker = false, isOnStack = false, isBlockerSelected = false, isAssignedBlocker = false, draggableForRitual = false): string {
@@ -1373,7 +1393,7 @@ export class BotGameScreen {
         ${statsRow}
         ${isOnStack ? `<div class="stack-badge-small">STACK</div>` : ''}
         ${isBlockerSelected ? `<div class="block-select-indicator">🛡→</div>` : ''}
-        <div class="tooltip">${def.name}<br><span style="color:var(--text-dim)">${def.description}</span></div>
+        <div class="tooltip">${def.name}<br><span style="color:#fff">${def.description}</span></div>
       </div>
     `;
   }
@@ -1405,7 +1425,7 @@ export class BotGameScreen {
         <div class="card-image">${imgTag}</div>
         <div class="card-name">${def.name}</div>
         ${statsRow}
-        <div class="tooltip">${def.name}<br><span style="color:var(--text-dim)">${def.description}</span></div>
+        <div class="tooltip">${def.name}<br><span style="color:#fff">${def.description}</span></div>
       </div>
     `;
   }
@@ -1440,7 +1460,7 @@ export class BotGameScreen {
         const winsLabel = remaining === 1 ? '1 rewarded win remaining' : `${remaining} rewarded wins remaining`;
         spMessage = `<div style="margin-bottom:12px;color:var(--gold);font-size:11px">+${BOT_SP_REWARD} SP earned! ${remaining > 0 ? `(${winsLabel})` : '(Bot SP limit reached)'}</div>`;
       } else if (!isGuest && botWins >= BOT_WIN_LIMIT) {
-        spMessage = `<div style="margin-bottom:12px;font-size:10px;color:var(--text-dim)">No SP reward — bot win limit reached (${BOT_WIN_LIMIT}/${BOT_WIN_LIMIT})</div>`;
+        spMessage = `<div style="margin-bottom:12px;font-size:14px;color:var(--text-dim)">No SP reward — bot win limit reached (${BOT_WIN_LIMIT}/${BOT_WIN_LIMIT})</div>`;
       }
     }
 
@@ -1477,7 +1497,7 @@ export class BotGameScreen {
         <div class="overlay" id="ritual-target-overlay">
           <div class="modal" style="text-align:center;max-width:320px">
             <div class="modal-title" style="color:var(--red)">🔥 ${ritual.ritualName}</div>
-            <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px">Ritual Ignite deals ${dmg} damage. Choose a target.</p>
+            <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">Ritual Ignite deals ${dmg} damage. Choose a target.</p>
             <button class="btn-target" data-target="opponent" style="background:var(--red);border-color:var(--red);width:100%;margin-bottom:4px">🎯 ScapeBot</button>
             ${opBeings}
             <button id="btn-cancel-ritual-target" class="btn-danger" style="width:100%;margin-top:8px">Cancel</button>
@@ -1495,8 +1515,8 @@ export class BotGameScreen {
         <div class="overlay" id="ritual-target-overlay">
           <div class="modal" style="text-align:center;max-width:320px">
             <div class="modal-title" style="color:var(--cyan)">🦅 Flock Control</div>
-            <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px">Choose an opponent being to gain control of. You also draw a card.</p>
-            ${opBeings || '<div style="color:var(--text-dim);font-size:10px">No opponent beings</div>'}
+            <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">Choose an opponent being to gain control of. You also draw a card.</p>
+            ${opBeings || '<div style="color:var(--text-dim);font-size:14px">No opponent beings</div>'}
             <button id="btn-cancel-ritual-target" class="btn-danger" style="width:100%;margin-top:8px">Cancel</button>
           </div>
         </div>
@@ -1526,25 +1546,25 @@ export class BotGameScreen {
       <div class="overlay" id="damage-choice-overlay">
         <div class="modal" style="text-align:center;max-width:380px">
           <div class="modal-title" style="color:var(--red)">⚔ UNBLOCKED DAMAGE</div>
-          <p style="font-size:10px;color:var(--text-dim);margin-bottom:4px">
+          <p style="font-size:14px;color:var(--text-dim);margin-bottom:4px">
             ${unblockedPowers.length} unblocked attacker(s). Choose how their damage is calculated:
           </p>
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:12px">
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px">
             Powers: [${unblockedPowers.join(', ')}]
           </div>
           <div style="display:flex;gap:8px">
             <button id="btn-damage-additive" class="btn-green" style="flex:1;padding:10px">
               <div style="font-family:'Press Start 2P',monospace;font-size:8px">➕ ADDITIVE</div>
               <div style="font-size:14px;font-weight:bold;margin-top:6px;color:var(--green)">${additive} dmg</div>
-              <div style="font-size:8px;color:var(--text-dim);margin-top:2px">${unblockedPowers.join(' + ')} = ${additive}</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${unblockedPowers.join(' + ')} = ${additive}</div>
             </button>
             <button id="btn-damage-multiplicative" class="btn-danger" style="flex:1;padding:10px">
               <div style="font-family:'Press Start 2P',monospace;font-size:8px">✖ MULTIPLICATIVE</div>
               <div style="font-size:14px;font-weight:bold;margin-top:6px;color:var(--red)">${multiplicative} dmg</div>
-              <div style="font-size:8px;color:var(--text-dim);margin-top:2px">${unblockedPowers.join(' × ')} = ${multiplicative}</div>
+              <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${unblockedPowers.join(' × ')} = ${multiplicative}</div>
             </button>
           </div>
-          <div style="font-size:8px;color:var(--text-dim);margin-top:8px">Timer will auto-select additive if you don't choose.</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Timer will auto-select additive if you don't choose.</div>
         </div>
       </div>
     `;
@@ -1576,14 +1596,14 @@ export class BotGameScreen {
     const ritualButtons = ritualDescriptions.map(r => `
       <button id="${r.id}" class="btn-gold" style="text-align:left;padding:6px 8px;opacity:${r.can ? '1' : '0.4'}" ${r.can ? '' : 'disabled'}>
         <div style="font-size:9px;font-family:'Press Start 2P',monospace;color:var(--gold)">${r.name}</div>
-        <div style="font-size:8px;color:var(--text-dim);margin-top:2px">${r.desc}</div>
+        <div style="font-size:12px;color:#fff;margin-top:2px">${r.desc}</div>
       </button>
     `).join('');
 
     const passiveRulesHtml = `
       <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
         <div style="font-size:8px;font-family:'Press Start 2P',monospace;color:var(--purple-bright);margin-bottom:6px">PASSIVE RITUALS</div>
-        <div style="font-size:8px;color:var(--text-dim);line-height:1.6">
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.6">
           <b style="color:var(--text)">FINAL BLOW</b>: Both at 0 WP → last stack card player wins<br>
           <b style="color:var(--text)">STACK WAR</b>: 5+ cards on stack → last player draws a card<br>
           <b style="color:var(--text)">LAST BREATH</b>: 10+ yard cards → exile yard, set WP to 1<br>
@@ -1597,7 +1617,7 @@ export class BotGameScreen {
       <div class="overlay" id="ritual-modal-overlay">
         <div class="modal" style="max-width:480px;width:90vw;overflow-y:auto;max-height:90vh">
           <div class="modal-title" style="color:var(--gold)">🔮 RITUALS</div>
-          <p style="font-size:9px;color:var(--text-dim);margin-bottom:12px">Global rituals available during your play phase:</p>
+          <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">Global rituals available during your play phase:</p>
           <div style="display:flex;flex-direction:column;gap:6px">
             ${ritualButtons}
           </div>
@@ -1618,13 +1638,13 @@ export class BotGameScreen {
           <div class="modal-title" style="color:var(--cyan)">⚙ SETTINGS</div>
           <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
             <button id="btn-settings-pause" class="${pauseBtnClass}" style="width:100%;padding:10px;font-size:10px">${pauseLabel}</button>
-            <button id="btn-settings-lobby" class="btn-green" style="width:100%;padding:10px;font-size:10px">🏠 Exit to Lobby<br><span style="font-size:8px;color:var(--text-dim)">(game stays active)</span></button>
+            <button id="btn-settings-lobby" class="btn-green" style="width:100%;padding:10px;font-size:10px">🏠 Exit to Lobby<br><span style="font-size:12px;color:var(--text-dim)">(game stays active)</span></button>
             <button id="btn-settings-concede" class="btn-danger" style="width:100%;padding:10px;font-size:10px">🏳 Concede</button>
             <button id="btn-settings-bug" class="btn-gold" style="width:100%;padding:10px;font-size:10px">🐛 Report a Bug</button>
           </div>
           <div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">
             <div style="font-size:9px;color:var(--gold);font-family:'Press Start 2P',monospace;margin-bottom:8px">🌿 WILLOW AI</div>
-            <div style="font-size:8px;color:var(--text-dim);line-height:1.8;text-align:left;padding:0 8px">
+            <div style="font-size:12px;color:#fff;line-height:1.8;text-align:left;padding:0 8px">
               Games: ${stats.gamesPlayed} &nbsp;|&nbsp; Win rate: ${stats.winRate}<br>
               Patterns: ${stats.patternsLearned} &nbsp;|&nbsp; Data: ${stats.modelSizeKB}KB<br>
               Exploration: ${stats.explorationRate}
@@ -1655,7 +1675,7 @@ export class BotGameScreen {
       <div class="overlay" id="breakpoint-picker-overlay">
         <div class="modal" style="max-width:340px;text-align:center">
           <div class="modal-title" style="color:var(--gold)">🔴 SET PHASE BREAKPOINT</div>
-          <p style="font-size:9px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
+          <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;line-height:1.5">
             Choose a phase. When you reach it on your turn, the game will pause and notify you.
           </p>
           <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
@@ -1665,7 +1685,7 @@ export class BotGameScreen {
               const mark = isActive ? ' ✓ ACTIVE' : '';
               return `<button class="bp-phase-btn ${cls}" data-phase="${p.id}" style="text-align:left;padding:7px 10px;opacity:1">
                 <div style="font-size:9px;font-family:'Press Start 2P',monospace">${p.label}${mark}</div>
-                <div style="font-size:8px;color:var(--text-dim);margin-top:2px">${p.desc}</div>
+                <div style="font-size:12px;color:#fff;margin-top:2px">${p.desc}</div>
               </button>`;
             }).join('')}
           </div>
@@ -1688,7 +1708,7 @@ export class BotGameScreen {
           <div style="font-size:36px;margin-bottom:8px">🔴</div>
           <div class="modal-title" style="color:var(--gold)">PHASE BREAKPOINT</div>
           <p style="font-size:12px;color:var(--text);margin:12px 0;font-family:'Press Start 2P',monospace;letter-spacing:1px">${label}</p>
-          <p style="font-size:9px;color:var(--text-dim);margin-bottom:16px">The game has paused at your breakpoint. Take your time.</p>
+          <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">The game has paused at your breakpoint. Take your time.</p>
           <div style="display:flex;gap:8px">
             <button id="btn-bp-hit-continue" class="btn-green" style="flex:1;padding:10px">▶ Continue</button>
             <button id="btn-bp-hit-clear" class="btn-gold" style="flex:1;padding:10px">✕ Clear & Continue</button>
@@ -1704,7 +1724,7 @@ export class BotGameScreen {
         <div class="modal" style="max-width:320px;text-align:center">
           <div style="font-size:40px;margin-bottom:8px">⏸</div>
           <div class="modal-title" style="color:var(--cyan)">GAME PAUSED</div>
-          <p style="font-size:9px;color:var(--text-dim);margin:12px 0">Resume the game or open settings.</p>
+          <p style="font-size:13px;color:var(--text-dim);margin:12px 0">Resume the game or open settings.</p>
           <button id="btn-pause-resume" class="btn-green" style="width:100%;padding:10px;margin-bottom:8px">▶ Resume Game</button>
           <button id="btn-pause-settings" class="btn-gold" style="width:100%;padding:10px;margin-bottom:8px">⚙ Open Settings</button>
         </div>
@@ -1898,7 +1918,7 @@ export class BotGameScreen {
         bugOverlay.innerHTML = `
           <div class="modal" style="max-width:380px;text-align:center">
             <div class="modal-title" style="color:var(--gold)">🐛 Report a Bug</div>
-            <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">To report a bug, please describe the issue and submit it via the GitHub Issues page or email the developer.</p>
+            <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px;line-height:1.6">To report a bug, please describe the issue and submit it via the GitHub Issues page or email the developer.</p>
             <p style="font-size:9px;color:var(--cyan);margin-bottom:16px">Include: what happened, what you expected, and any relevant game state details.</p>
             <button id="btn-bug-close" class="btn-green w-full">Close</button>
           </div>
@@ -2749,7 +2769,7 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="text-align:center;max-width:320px">
         <div class="modal-title" style="color:var(--green)">⚡ Choose a Target</div>
-        <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px">Click a target or cancel.</p>
+        <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">Click a target or cancel.</p>
         <div style="margin-bottom:8px">
           <button class="btn-target" data-target="opponent" style="background:var(--red);border-color:var(--red);width:100%;margin-bottom:4px">🎯 ScapeBot</button>
           ${opBeings}
@@ -2798,7 +2818,7 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="text-align:center;max-width:320px">
         <div class="modal-title" style="color:var(--red)">🌋 Smoldering Volcano</div>
-        <p style="font-size:10px;color:var(--text-dim);margin-bottom:12px">Deal 3 damage to any target.</p>
+        <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">Deal 3 damage to any target.</p>
         <button class="btn-target" data-target="opponent" style="background:var(--red);border-color:var(--red);width:100%;margin-bottom:4px">🎯 ScapeBot</button>
         ${opBeings}
         <button id="btn-cancel-anc" style="width:100%;margin-top:8px">Cancel</button>
@@ -2836,17 +2856,17 @@ export class BotGameScreen {
       return `<button class="btn-target cavern-card-btn" data-id="${c.id}" style="margin-bottom:5px;text-align:left;padding:7px 12px">
         <span style="font-size:12px">${emoji}</span>
         <span style="font-size:10px;margin-left:6px">${d.name}${statsText}</span>
-        <span style="font-size:8px;color:var(--text-dim);display:block;margin-top:2px;padding-left:20px">${d.description}</span>
+        <span style="font-size:12px;color:#fff;display:block;margin-top:2px;padding-left:20px">${d.description}</span>
       </button>`;
     }).join('');
 
     overlay.innerHTML = `
       <div class="modal" style="max-width:380px;width:90vw">
         <div class="modal-title" style="color:var(--cyan)">🔮 Cavern of the See</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:12px">Opponent's hand (${oppPs.hand.length} cards). Select one card to recycle back into their deck.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">Opponent's hand (${oppPs.hand.length} cards). Select one card to recycle back into their deck.</p>
         <div style="display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto;margin-bottom:10px">
           ${oppPs.hand.length === 0
-            ? '<div style="color:var(--text-dim);font-size:10px;text-align:center;padding:12px">Opponent\'s hand is empty</div>'
+            ? '<div style="color:var(--text-dim);font-size:14px;text-align:center;padding:12px">Opponent\'s hand is empty</div>'
             : cardOptions}
         </div>
         ${oppPs.hand.length === 0 ? `<button id="btn-cavern-use-empty" class="btn-green w-full">Use Without Effect</button>` : ''}
@@ -2891,15 +2911,15 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="text-align:center;max-width:340px;width:90vw">
         <div class="modal-title" style="color:var(--gold)">🐝 Play Wasp (2/3 Flyer)</div>
-        <p style="font-size:10px;color:var(--text-dim);margin-bottom:14px">Choose how to summon the Wasp:</p>
+        <p style="font-size:14px;color:var(--text-dim);margin-bottom:14px">Choose how to summon the Wasp:</p>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button id="btn-wasp-discard" class="btn-green" style="text-align:left;padding:8px;opacity:${canPayA ? '1' : '0.4'}" ${canPayA ? '' : 'disabled'}>
             <div style="font-size:9px;font-family:'Press Start 2P',monospace;color:var(--green)">OPTION A</div>
-            <div style="font-size:8px;color:var(--text-dim);margin-top:2px">Exhaust 2 Landscapes + discard a card</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px">Exhaust 2 Landscapes + discard a card</div>
           </button>
           <button id="btn-wasp-extra" class="btn-gold" style="text-align:left;padding:8px;opacity:${canPayB ? '1' : '0.4'}" ${canPayB ? '' : 'disabled'}>
             <div style="font-size:9px;font-family:'Press Start 2P',monospace;color:var(--gold)">OPTION B</div>
-            <div style="font-size:8px;color:var(--text-dim);margin-top:2px">Exhaust 3 Landscapes</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px">Exhaust 3 Landscapes</div>
           </button>
           <button id="btn-wasp-cancel" class="btn-danger" style="width:100%;margin-top:4px">Cancel</button>
         </div>
@@ -2956,9 +2976,9 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:320px;width:90vw;text-align:center">
         <div class="modal-title" style="color:var(--gold)">🗑 DISCARD A CARD (Wasp Cost)</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Choose 1 card to discard as part of the Wasp's alternate cost.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Choose 1 card to discard as part of the Wasp's alternate cost.</p>
         <div style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;margin-bottom:8px">
-          ${cardOptions || '<div style="color:var(--text-dim);font-size:10px">No cards to discard</div>'}
+          ${cardOptions || '<div style="color:var(--text-dim);font-size:14px">No cards to discard</div>'}
         </div>
         <button id="btn-wasp-discard-cancel" class="btn-danger w-full mt-8">Cancel</button>
       </div>
@@ -3022,13 +3042,13 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:400px;width:90vw">
         <div class="modal-title" style="color:var(--green)">🌱 CULTIVATE</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Sacrifice beings with total power equal to a yard being's power to summon it exhausted.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Sacrifice beings with total power equal to a yard being's power to summon it exhausted.</p>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Choose yard being to summon:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Choose yard being to summon:</div>
           <select id="cultivate-yard-select" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:10px">${yardOptions}</select>
         </div>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Check beings to sacrifice (total power must match):</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Check beings to sacrifice (total power must match):</div>
           <div>${bfOptions}</div>
         </div>
         <div style="display:flex;gap:8px">
@@ -3076,13 +3096,13 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:420px;width:90vw">
         <div class="modal-title" style="color:var(--purple-bright)">📚 STUDY</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Cast a spell from your yard. Sacrifice beings/landscapes equal to its cost. You take 2x damage.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Cast a spell from your yard. Sacrifice beings/landscapes equal to its cost. You take 2x damage.</p>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Choose spell to cast:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Choose spell to cast:</div>
           <select id="study-spell-select" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:10px">${spellOptions}</select>
         </div>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Check to sacrifice (need: equal to spell cost):</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Check to sacrifice (need: equal to spell cost):</div>
           <div>${bfOptions}</div>
         </div>
         <div style="display:flex;gap:8px">
@@ -3123,13 +3143,13 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:380px;width:90vw">
         <div class="modal-title" style="color:var(--cyan)">🌀 EVOLVE</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Spend WP (≤ landscape count: ${landscapes.length}) to transform a landscape into a WP/WP-2 being.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Spend WP (≤ landscape count: ${landscapes.length}) to transform a landscape into a WP/WP-2 being.</p>
         <div style="margin-bottom:8px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">WP to spend (1–${maxWP}):</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">WP to spend (1–${maxWP}):</div>
           <input id="evolve-wp-input" type="number" min="1" max="${maxWP}" value="1" style="width:80px;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:12px">
         </div>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Choose landscape to transform:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Choose landscape to transform:</div>
           <select id="evolve-land-select" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:10px">${landOptions}</select>
         </div>
         <div style="display:flex;gap:8px">
@@ -3174,13 +3194,13 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:360px;width:90vw">
         <div class="modal-title" style="color:var(--green)">🌿 NOURISH</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Sacrifice a being to return a landscape from your yard to hand.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Sacrifice a being to return a landscape from your yard to hand.</p>
         <div style="margin-bottom:8px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Sacrifice being:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Sacrifice being:</div>
           <select id="nourish-being-select" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:10px">${beingOptions}</select>
         </div>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Return landscape from yard:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Return landscape from yard:</div>
           <select id="nourish-land-select" style="width:100%;background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px;font-size:10px">${landOptions}</select>
         </div>
         <div style="display:flex;gap:8px">
@@ -3219,9 +3239,9 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:360px;width:90vw">
         <div class="modal-title" style="color:var(--gold)">⭐ SAC ANCIENT + 2 LANDSCAPES</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Sacrifice your Ancient and 2 Landscapes → draw 3 cards, discard 1.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Sacrifice your Ancient and 2 Landscapes → draw 3 cards, discard 1.</p>
         <div style="margin-bottom:10px">
-          <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Check exactly 2 landscapes to sacrifice:</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:4px">Check exactly 2 landscapes to sacrifice:</div>
           <div>${landOptions}</div>
         </div>
         <div style="display:flex;gap:8px">
@@ -3263,7 +3283,7 @@ export class BotGameScreen {
     overlay.innerHTML = `
       <div class="modal" style="max-width:320px;width:90vw;text-align:center">
         <div class="modal-title" style="color:var(--gold)">🗑 DISCARD A CARD</div>
-        <p style="font-size:9px;color:var(--text-dim);margin-bottom:10px">Choose 1 card from your hand to discard.</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:10px">Choose 1 card from your hand to discard.</p>
         ${cardOptions}
       </div>
     `;

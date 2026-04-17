@@ -828,7 +828,10 @@ export function sacrificeLandscape(state: GameState, uid: string, cardId: string
 }
 
 export function useAncient(state: GameState, uid: string, target?: string): GameState {
-  if (state.phase !== 'play1' && state.phase !== 'play2') return state;
+  // Allow ancient use during play phases and during pre-damage priority window
+  const allowedPhase = state.phase === 'play1' || state.phase === 'play2'
+    || (state.phase === 'combat' && state.combatStep === 'pre-damage');
+  if (!allowedPhase) return state;
   if (state.priorityPlayer !== uid) return state;
   const ps = getPlayerState(state, uid);
   if (!ps.ancient || ps.ancient.exhausted) return state;
@@ -893,7 +896,6 @@ export function useAncient(state: GameState, uid: string, target?: string): Game
   }
 
   next = addLog(next, `${uid} used Ancient: ${ancientDef.name}.`);
-  next = { ...next, priorityPlayer: oppUid };
   return checkWinConditions(next);
 }
 
