@@ -533,11 +533,19 @@ export class BotGameScreen {
       const myUid = this.currentUser.uid;
       if (gs.currentTurn !== myUid || gs.priorityPlayer === myUid || this.botRunning || gs.winner) return;
 
-      // Pre-damage: if the player already passed (stackPassedOnce), bot passing
-      // means both players have passed priority → resolve combat damage.
-      if (gs.combatStep === 'pre-damage' && gs.stackPassedOnce) {
-        const next = advancePhase(gs, myUid);
-        if (next !== gs) this.setState(next);
+      // Pre-damage: defender (bot) gets priority first. When bot passes,
+      // mark stackPassedOnce so that if the player also passes, combat resolves.
+      if (gs.combatStep === 'pre-damage') {
+        if (gs.stackPassedOnce) {
+          // Both sides have passed → resolve combat damage
+          const next = advancePhase(gs, myUid);
+          if (next !== gs) this.setState(next);
+          return;
+        }
+        // Bot passes at pre-damage — mark as one pass done, give player priority
+        this.gameState = { ...gs, priorityPlayer: myUid, stackPassedOnce: true, stackPassPriority: undefined };
+        this.render();
+        this.startPlayerInactivityTimer();
         return;
       }
 
@@ -651,16 +659,19 @@ export class BotGameScreen {
 
       // Advance: blocks → pre-damage (priority passes before combat damage resolves)
       gs = advancePhase(this.gameState, myUid);
-      // Stop at pre-damage — let the player pass priority before damage resolves.
-      // When player passes, handlePassPriority routes through pre-damage priority flow,
-      // which gives the bot a chance to respond, then both passing resolves combat.
+      // Stop at pre-damage — defender (bot) gets priority first before damage resolves.
       this.gameState = gs;
       this.render();
     } catch (e) {
       console.warn('Bot blocking error:', e);
     }
     this.botRunning = false;
-    this.startPlayerInactivityTimer();
+    // If the bot (defender) has priority at pre-damage, trigger its priority window
+    if (this.gameState.combatStep === 'pre-damage' && this.gameState.priorityPlayer !== this.currentUser.uid) {
+      this.botAutoPassPriority();
+    } else {
+      this.startPlayerInactivityTimer();
+    }
   }
 
   private async runBotTurnAsync(): Promise<void> {

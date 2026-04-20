@@ -236,13 +236,15 @@ export function advancePhase(state: GameState, uid: string): GameState {
       });
       if (!hasValidBlockers) {
         // No valid blocking available — skip directly to pre-damage.
-        // Return pre-damage state and let the caller handle priority passing
-        // before combat damage resolves.
-        return { ...state, combatStep: 'pre-damage' as const, priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+        // Give the defender (opponent) priority first so they can respond before damage.
+        return { ...state, combatStep: 'pre-damage' as const, priorityPlayer: oppUid, stackPassedOnce: false, stackPassPriority: undefined };
       }
       return { ...state, combatStep: 'blocks', priorityPlayer: oppUid, stackPassedOnce: false, stackPassPriority: undefined };
     }
-    if (state.combatStep === 'blocks') return { ...state, combatStep: 'pre-damage', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+    if (state.combatStep === 'blocks') {
+      const oppUid = state.player1 === uid ? state.player2 : state.player1;
+      return { ...state, combatStep: 'pre-damage', priorityPlayer: oppUid, stackPassedOnce: false, stackPassPriority: undefined };
+    }
     if (state.combatStep === 'pre-damage') {
       // If a damage choice is already pending, don't advance until it's resolved
       if (state.pendingDamageChoice) return state;
@@ -674,12 +676,12 @@ export function declareAttacker(state: GameState, uid: string, cardId: string): 
   const bfIdx = battlefield.findIndex(c => c.id === cardId);
   if (idx !== -1) {
     attackers.splice(idx, 1);
-    // Untap and unexhaust when removed from attackers
-    if (bfIdx !== -1) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: false };
+    // Untap and unexhaust when removed from attackers (flyers stay untapped)
+    if (bfIdx !== -1 && !def.isFlyer) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: false };
   } else {
     attackers.push(cardId);
-    // Tap and exhaust when declared as attacker
-    if (bfIdx !== -1) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: true };
+    // Tap and exhaust when declared as attacker (flyers stay untapped to block later)
+    if (bfIdx !== -1 && !def.isFlyer) battlefield[bfIdx] = { ...battlefield[bfIdx], exhausted: true };
   }
   return setPlayerState(state, uid, { ...ps, battlefield, attackers });
 }
