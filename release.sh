@@ -49,7 +49,7 @@ echo "   ✓ Mac DMG built"
 
 echo ""
 echo "📦 Building Windows installer..."
-npx electron-builder --win
+npx electron-builder --win --x64
 echo "   ✓ Windows EXE built"
 
 MAC_DMG="$BOT_DIR/release/Scape-${NEW_VERSION}-mac.dmg"

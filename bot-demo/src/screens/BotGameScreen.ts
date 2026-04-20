@@ -965,8 +965,10 @@ export class BotGameScreen {
     const oppBeings = opp.battlefield.filter(c => CARD_DEFS[c.defId]?.type === 'being');
     const myLandscapes = ps.battlefield.filter(c => CARD_DEFS[c.defId]?.type === 'landscape');
     const myBeings = ps.battlefield.filter(c => CARD_DEFS[c.defId]?.type === 'being');
-
-    // max landscapes this turn info
+    const showMyAttackZone = gs.phase === 'combat' && gs.combatStep === 'attackers' && isMyTurn;
+    const showOppAttackZone = !isMyTurn && gs.phase === 'combat' && opp.attackers.length > 0;
+    const oppZoneBeings = showOppAttackZone ? oppBeings.filter(c => !opp.attackers.includes(c.id)) : oppBeings;
+    const myZoneBeings = showMyAttackZone ? myBeings.filter(c => !ps.attackers.includes(c.id)) : myBeings;
     const isP1 = gs.player1 === myUid;
     const playerTurnCount = isP1 ? gs.p1TurnCount : gs.p2TurnCount;
     const maxLand = Math.min(playerTurnCount, 3);
@@ -1051,7 +1053,7 @@ export class BotGameScreen {
               <div class="opp-being-col">
                 <div class="zone-label">🤖 BEINGS</div>
                 <div class="battlefield-zone opp-being-zone ${isBlockStep && this.selectedCard ? 'block-targets-active' : ''}" id="opp-being-zone">
-                  ${oppBeings.map(c => {
+                  ${oppZoneBeings.map(c => {
                     const isAtk = gs.p1State.attackers.includes(c.id) || gs.p2State.attackers.includes(c.id);
                     let isValidTarget = isBlockStep && this.selectedCard && isAtk;
                     // Non-flyer cannot block a flyer
@@ -1072,7 +1074,7 @@ export class BotGameScreen {
               <div style="font-size:11px;color:var(--text-dim)">YARD</div>
             </div>
           </div>
-          ${!isMyTurn && gs.phase === 'combat' && opp.attackers.length > 0 ? `
+          ${showOppAttackZone ? `
           <div class="zone-label" style="color:var(--red);text-align:center">⚔ BOT ATTACKERS</div>
           <div class="attack-zone opp-attack-zone">
             ${opp.attackers.map(id => {
@@ -1105,12 +1107,14 @@ export class BotGameScreen {
 
             <!-- Center: Beings + Landscape stacked -->
             <div class="player-zones-col">
-              ${gs.phase === 'combat' && gs.combatStep === 'attackers' && isMyTurn ? `
+              ${showMyAttackZone ? `
               <div class="zone-label" style="color:var(--red)">⚔ ATTACK ZONE</div>
               <div class="attack-zone" id="attack-zone" data-drop="attack">
                 ${ps.attackers.map(id => {
                   const c = ps.battlefield.find(b => b.id === id);
-                  return c ? this.buildCardEl(c, true, false, true) : '';
+                  return c
+                    ? `<div class="attack-card-wrap">${this.buildCardEl(c, true, false, true)}<button class="btn-undo-attacker" data-id="${c.id}" title="Undo attacker">↶ Undo</button></div>`
+                    : '';
                 }).join('')}
                 ${ps.attackers.length === 0 ? '<div class="drop-hint">Drag beings here</div>' : ''}
               </div>` : ''}
@@ -1121,7 +1125,7 @@ export class BotGameScreen {
               <div class="battlefield-zone my-being-zone" id="my-being-zone"
                    data-drop="being"
                    ondragover="event.preventDefault()" ondragleave="" ondrop="">
-                ${myBeings.map(c => {
+                ${myZoneBeings.map(c => {
                   const isBlockerSelected = this.selectedCard === c.id && isBlockStep;
                   const assignedAttackerId = ps.blockers[c.id];
                   const isDraggableForRitual = isMyTurn && (gs.phase === 'play1' || gs.phase === 'play2');
@@ -2267,6 +2271,24 @@ export class BotGameScreen {
 
     // Attack zone drop
     this.attachDropZone('#attack-zone', 'attack');
+    // Attack zone cards can be clicked/undone before finalizing attackers
+    this.container.querySelector('#attack-zone')?.querySelectorAll<HTMLElement>('.card').forEach(el => {
+      el.addEventListener('click', () => {
+        if (!(gs.phase === 'combat' && gs.combatStep === 'attackers' && isMyTurn)) return;
+        const cardId = el.dataset.id!;
+        const next = declareAttacker(this.gameState, myUid, cardId);
+        if (next !== this.gameState) this.setState(next);
+      });
+    });
+    this.container.querySelector('#attack-zone')?.querySelectorAll<HTMLButtonElement>('.btn-undo-attacker').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!(gs.phase === 'combat' && gs.combatStep === 'attackers' && isMyTurn)) return;
+        const cardId = btn.dataset.id!;
+        const next = declareAttacker(this.gameState, myUid, cardId);
+        if (next !== this.gameState) this.setState(next);
+      });
+    });
 
     // Landscape right-click to sacrifice, and dragstart for ritual zone
     this.container.querySelector('#my-landscapes')?.querySelectorAll<HTMLElement>('.card').forEach(el => {
@@ -2298,8 +2320,8 @@ export class BotGameScreen {
       const defId = el.dataset.def!;
       const cardId = el.dataset.id!;
       const def = CARD_DEFS[defId];
-      // Allow using the ancient whenever the player has priority (not just on their turn)
-      if (def?.isAncient && myHasP && ps.ancient?.id === cardId && !ps.ancient?.exhausted) {
+      // Ancient activations resolve immediately and are not stack-based.
+      if (def?.isAncient && ps.ancient?.id === cardId && !ps.ancient?.exhausted) {
         el.addEventListener('dblclick', () => {
           const ancDef = CARD_DEFS[ps.ancient?.defId ?? ''];
           if (ancDef?.id === 'smoldering_volcano') {
@@ -2921,8 +2943,8 @@ export class BotGameScreen {
       btn.addEventListener('click', () => {
         const target = btn.dataset.target;
         overlay.remove();
-        const newState = useAncient(gs, uid, target);
-        if (newState !== gs) this.setState(newState);
+        const newState = useAncient(this.gameState, uid, target);
+        if (newState !== this.gameState) this.setState(newState);
       });
     });
 

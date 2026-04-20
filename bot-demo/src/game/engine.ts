@@ -837,11 +837,7 @@ export function sacrificeLandscape(state: GameState, uid: string, cardId: string
 }
 
 export function useAncient(state: GameState, uid: string, target?: string): GameState {
-  // Allow ancient use during play phases and during pre-damage priority window
-  const allowedPhase = state.phase === 'play1' || state.phase === 'play2'
-    || (state.phase === 'combat' && state.combatStep === 'pre-damage');
-  if (!allowedPhase) return state;
-  if (state.priorityPlayer !== uid) return state;
+  // Ancient abilities resolve immediately and are phase-agnostic.
   const ps = getPlayerState(state, uid);
   if (!ps.ancient || ps.ancient.exhausted) return state;
 
