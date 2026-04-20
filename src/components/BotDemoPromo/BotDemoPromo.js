@@ -2,7 +2,7 @@ import React from "react";
 import "./BotDemoPromo.css";
 
 const DEFAULT_DEMO_URL = "/bot-demo/";
-const APP_VERSION = "1.1.1";
+const APP_VERSION = "1.1.2";
 const GITHUB_RELEASE_BASE = `https://github.com/skyylersiejko/scape_simple/releases/download/v${APP_VERSION}`;
 const MAC_URL = `${GITHUB_RELEASE_BASE}/Scape-${APP_VERSION}-mac.dmg`;
 const WIN_URL = `${GITHUB_RELEASE_BASE}/Scape-Setup-${APP_VERSION}-win.exe`;

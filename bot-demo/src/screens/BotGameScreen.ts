@@ -157,20 +157,20 @@ export class BotGameScreen {
     // (e.g. cast a spell, which passes priority to bot), auto-resolve so the bot can continue.
     // We intentionally compare the OLD state (this.gameState) to the NEW state (newState) to detect
     // the moment the player's priority was transferred away as a result of their action.
-    // Exception: during pre-damage, if the player took an action (cast spell or used ancient),
+    // Exception: during any combat step, if the player took an action (cast spell or used ancient),
     // don't auto-resolve — let priority return to the player so they can act more or pass.
-    const isPreDamage = newState.phase === 'combat' && newState.combatStep === 'pre-damage';
+    const isCombatStep = newState.phase === 'combat' && newState.combatStep !== 'none';
     if (this.waitingOnPlayer &&
         this.gameState.priorityPlayer === myUid &&
         newState.priorityPlayer !== myUid &&
-        !isPreDamage) {
+        !isCombatStep) {
       setTimeout(() => this.resolvePlayerPriority(), 500);
     }
 
-    // During bot's turn pre-damage: after the stack empties from a player spell resolution,
+    // During bot's turn combat: after the stack empties from a player spell resolution,
     // return priority to the player so they can cast more spells or pass.
     const stackJustEmptied = this.gameState.stack.length > 0 && newState.stack.length === 0;
-    if (this.waitingOnPlayer && isPreDamage && stackJustEmptied &&
+    if (this.waitingOnPlayer && isCombatStep && stackJustEmptied &&
         newState.currentTurn !== myUid && newState.priorityPlayer !== myUid) {
       newState = { ...newState, priorityPlayer: myUid, stackPassedOnce: false, stackPassPriority: undefined };
     }
@@ -377,6 +377,75 @@ export class BotGameScreen {
       this.waitingOnPlayer = false;
       cb(this.gameState);
     }
+  }
+
+  /**
+   * Give the player priority during the bot's combat.
+   * The player can cast spells (which go on the stack and the bot responds),
+   * declare blockers, or pass. Resolves when the player explicitly passes
+   * with an empty stack.
+   */
+  private async givePlayerCombatPriority(gs: GameState): Promise<GameState> {
+    const myUid = this.currentUser.uid;
+    gs = { ...gs, priorityPlayer: myUid };
+    this.gameState = gs;
+    this.render();
+
+    // Loop: wait for player action, resolve stack with bot responses, repeat
+    while (true) {
+      gs = await this.waitForPlayerPriority(30000);
+
+      // If the player passed with an empty stack, we're done
+      if (gs.stack.length === 0) break;
+
+      // Player cast a spell — let the bot respond via the stack
+      // The bot gets priority to counter/respond
+      gs = { ...gs, priorityPlayer: BOT_UID };
+      this.gameState = gs;
+      this.render();
+
+      // Wait for bot stack response
+      gs = await this.waitForBotStackResponse(gs);
+
+      // After bot responds (or passes), resolve the stack if both passed
+      // The triggerBotStackResponse flow handles pass tracking.
+      // If there are still items on the stack, resolve them.
+      if (gs.stack.length > 0) {
+        gs = resolveEntireStack(gs);
+        this.gameState = gs;
+        this.render();
+        await this.delay(400);
+      }
+
+      // Return priority to the player for another action
+      gs = { ...gs, priorityPlayer: myUid, stackPassedOnce: false, stackPassPriority: undefined };
+      this.gameState = gs;
+      this.render();
+    }
+
+    return gs;
+  }
+
+  /**
+   * Wait for the bot to respond to the stack (counter or pass).
+   * Returns the updated game state after bot action.
+   */
+  private waitForBotStackResponse(_gs: GameState): Promise<GameState> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const currentGs = this.gameState;
+        if (currentGs.stack.length === 0) { resolve(currentGs); return; }
+
+        const botResponded = this.botTryRespond();
+        if (botResponded) {
+          // Bot responded (e.g., cast Cancel) — give player a moment to see, then resolve
+          setTimeout(() => resolve(this.gameState), 800);
+        } else {
+          // Bot passed — resolve with current state
+          resolve(this.gameState);
+        }
+      }, 1200);
+    });
   }
 
   // Start player turn timer — 1s auto-advance for replenish/draw, 30s inactivity for other phases
@@ -641,6 +710,12 @@ export class BotGameScreen {
         this.render();
         await this.delay(400);
 
+        // After attackers are declared, give the player priority to cast spells
+        const declaredAttackers = getPlayerState(gs, BOT_UID).attackers;
+        if (declaredAttackers.length > 0) {
+          gs = await this.givePlayerCombatPriority(gs);
+        }
+
         // advancePhase auto-skips blocking if player has no unexhausted beings
         gs = advancePhase(gs, BOT_UID); // attackers → blocks (or pre-damage if no player blockers)
         this.gameState = gs;
@@ -648,8 +723,8 @@ export class BotGameScreen {
         await this.delay(400);
 
         if (gs.combatStep === 'blocks') {
-          // Wait for player to declare blockers (up to 30s), then advance
-          gs = await this.waitForPlayerPriority(30000);
+          // Wait for player to declare blockers and/or cast spells
+          gs = await this.givePlayerCombatPriority(gs);
           gs = advancePhase(gs, BOT_UID); // blocks → pre-damage
           this.gameState = gs;
           this.render();
@@ -658,14 +733,7 @@ export class BotGameScreen {
 
         // Pre-damage priority: give player a chance to act before combat damage resolves
         if (gs.combatStep === 'pre-damage') {
-          gs = await this.waitForPlayerPriority(30000);
-          // Resolve any spells the player may have cast during pre-damage priority
-          if (gs.stack.length > 0) {
-            gs = resolveEntireStack(gs);
-            this.gameState = gs;
-            this.render();
-            await this.delay(400);
-          }
+          gs = await this.givePlayerCombatPriority(gs);
           gs = advancePhase(gs, BOT_UID); // pre-damage → resolves or sets pendingDamageChoice
         }
 
@@ -1191,7 +1259,17 @@ export class BotGameScreen {
     const rightBtns: string[] = [];
 
     if (this.waitingOnPlayer) {
-      rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>`);
+      // Show contextual buttons based on combat step
+      if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'blocks') {
+        leftBtns.push(`<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">✨ Cast Spell</button>`);
+        rightBtns.push(`<button id="btn-done-blocks" class="btn-green pulse-anim">🛡 Done Blocking</button>`);
+      } else if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'attackers') {
+        leftBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass</button>`);
+      } else if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'pre-damage') {
+        leftBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass (before damage)</button>`);
+      } else {
+        rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>`);
+      }
     } else if (isMyTurn && myHasP) {
       if (gs.phase === 'combat' && gs.combatStep === 'attackers') {
         // Attack with All (left) — only if there are eligible attackers not already declared
@@ -1202,6 +1280,7 @@ export class BotGameScreen {
         if (eligible.length > 0) {
           leftBtns.push(`<button id="btn-attack-all" class="btn-danger" style="font-size:11px;padding:8px 16px">⚔ Attack with All (${eligible.length})</button>`);
         }
+        leftBtns.push(`<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">⚡ Cast Spells / Pass</button>`);
         rightBtns.push(`<button id="btn-done-attackers" class="btn-danger" style="font-size:11px;padding:8px 16px">✅ Done Declaring Attackers</button>`);
       } else if (gs.phase === 'combat' && gs.combatStep === 'blocks') {
         // blocks is opponent's priority — nothing for active player
@@ -1225,7 +1304,7 @@ export class BotGameScreen {
       }
     }
 
-    if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'blocks') {
+    if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'blocks' && !this.waitingOnPlayer) {
       rightBtns.push(`<button id="btn-done-blocks" class="btn-green">🛡 Done Blocking</button>`);
     }
 
