@@ -1119,7 +1119,7 @@ export class BotGameScreen {
                 ${ps.attackers.length === 0 ? '<div class="drop-hint">Drag beings here</div>' : ''}
               </div>` : ''}
               ${isBlockStep ? `
-              <div class="zone-label" style="color:var(--cyan)">🛡 Click your being → click attacker to block (multiple beings can block the same attacker)</div>` : ''}
+              <div class="zone-label" style="color:var(--cyan)">🛡 Click or drag your being to an attacker to block (multiple beings can block the same attacker)</div>` : ''}
 
               <div class="zone-label">🐉 BEINGS ${isMyTurn && (gs.phase === 'play1' || gs.phase === 'play2') ? `<span style="color:var(--green-dim);font-size:7px">(drag from hand · 🌿${myLandscapes.filter(c => !c.exhausted).length} free)</span>` : ''}</div>
               <div class="battlefield-zone my-being-zone" id="my-being-zone"
@@ -1129,7 +1129,8 @@ export class BotGameScreen {
                   const isBlockerSelected = this.selectedCard === c.id && isBlockStep;
                   const assignedAttackerId = ps.blockers[c.id];
                   const isDraggableForRitual = isMyTurn && (gs.phase === 'play1' || gs.phase === 'play2');
-                  return this.buildCardEl(c, isMyTurn || isBlockStep, false, ps.attackers.includes(c.id), false, isBlockerSelected, !!assignedAttackerId, isDraggableForRitual);
+                  const isDraggableForBlock = isBlockStep && !c.exhausted;
+                  return this.buildCardEl(c, isMyTurn || isBlockStep, false, ps.attackers.includes(c.id), false, isBlockerSelected, !!assignedAttackerId, isDraggableForRitual || isDraggableForBlock);
                 }).join('')}
                 ${ps.limbo.filter(c => CARD_DEFS[c.defId]?.type === 'being').map(c => this.buildCardEl(c, false, false, false, true)).join('')}
               </div>
@@ -2263,6 +2264,64 @@ export class BotGameScreen {
 
     // Opp being zone clicks (for blocking: click attacker after selecting blocker)
     this.container.querySelector('#opp-being-zone')?.querySelectorAll<HTMLElement>('.card').forEach(el => {
+      el.addEventListener('dragover', (e) => {
+        const dragId = this.dragCardId;
+        if (!dragId) return;
+        const blocker = ps.battlefield.find(c => c.id === dragId);
+        if (!blocker) return;
+        if (!(gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn)) return;
+        e.preventDefault();
+      });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const attackerId = el.dataset.id!;
+        const blockerId = this.dragCardId ?? (e as DragEvent).dataTransfer?.getData('text/plain') ?? '';
+        if (!blockerId) return;
+        if (!(gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn)) return;
+        const newState = declareBlocker(this.gameState, myUid, blockerId, attackerId);
+        this.selectedCard = null;
+        this.blockDragPos = null;
+        this.dragCardId = null;
+        if (newState !== this.gameState) {
+          this.setState(newState);
+        } else {
+          this.updateBlockLinesSVG();
+          this.render();
+        }
+      });
+      el.addEventListener('click', () => {
+        const cardId = el.dataset.id!;
+        this.handleBattlefieldBeingClick(gs, ps, cardId, myUid, false);
+      });
+    });
+
+    // Opp attack zone cards are also valid block targets during blockers step
+    this.container.querySelector('.opp-attack-zone')?.querySelectorAll<HTMLElement>('.card').forEach(el => {
+      el.addEventListener('dragover', (e) => {
+        const dragId = this.dragCardId;
+        if (!dragId) return;
+        const blocker = ps.battlefield.find(c => c.id === dragId);
+        if (!blocker) return;
+        if (!(gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn)) return;
+        e.preventDefault();
+      });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const attackerId = el.dataset.id!;
+        const blockerId = this.dragCardId ?? (e as DragEvent).dataTransfer?.getData('text/plain') ?? '';
+        if (!blockerId) return;
+        if (!(gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn)) return;
+        const newState = declareBlocker(this.gameState, myUid, blockerId, attackerId);
+        this.selectedCard = null;
+        this.blockDragPos = null;
+        this.dragCardId = null;
+        if (newState !== this.gameState) {
+          this.setState(newState);
+        } else {
+          this.updateBlockLinesSVG();
+          this.render();
+        }
+      });
       el.addEventListener('click', () => {
         const cardId = el.dataset.id!;
         this.handleBattlefieldBeingClick(gs, ps, cardId, myUid, false);
@@ -2363,6 +2422,12 @@ export class BotGameScreen {
     this.container.querySelector('#my-being-zone')?.querySelectorAll<HTMLElement>('.card').forEach(el => {
       el.addEventListener('dragstart', (e) => {
         this.dragCardId = el.dataset.id!;
+        // During blocker declaration, dragging a blocker should start target-line mode.
+        if (gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn) {
+          this.selectedCard = this.dragCardId;
+          this.blockDragPos = { x: e.clientX, y: e.clientY };
+          this.updateBlockLinesSVG();
+        }
         el.classList.add('dragging');
         if (e.dataTransfer) {
           e.dataTransfer.effectAllowed = 'move';
@@ -2371,6 +2436,11 @@ export class BotGameScreen {
       });
       el.addEventListener('dragend', () => {
         el.classList.remove('dragging');
+        if (gs.phase === 'combat' && gs.combatStep === 'blocks' && !isMyTurn) {
+          this.selectedCard = null;
+          this.blockDragPos = null;
+          this.updateBlockLinesSVG();
+        }
         this.container.querySelectorAll('.drag-over').forEach(z => z.classList.remove('drag-over'));
       });
     });
