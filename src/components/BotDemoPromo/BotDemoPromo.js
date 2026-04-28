@@ -21,10 +21,10 @@ function BotDemoPromo() {
         Play
       </a>
       <div className={"BotDemoPromo_Downloads"}>
-        <a className={"BotDemoPromo_Install"} href={MAC_URL} download>
+        <a className={"BotDemoPromo_Install"} href={MAC_URL} target={"_blank"} rel={"noopener noreferrer"}>
           ⬇ Install for Mac <span className={"BotDemoPromo_Version"}>v{APP_VERSION}</span>
         </a>
-        <a className={"BotDemoPromo_Install"} href={WIN_URL} download>
+        <a className={"BotDemoPromo_Install"} href={WIN_URL} target={"_blank"} rel={"noopener noreferrer"}>
           ⬇ Install for Windows <span className={"BotDemoPromo_Version"}>v{APP_VERSION}</span>
         </a>
       </div>

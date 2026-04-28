@@ -7,6 +7,23 @@ BOT_DIR="$ROOT_DIR/bot-demo"
 PROMO_FILE="$ROOT_DIR/src/components/BotDemoPromo/BotDemoPromo.js"
 export PATH="$HOME/bin:$PATH"
 
+# --- Ensure gh CLI is available ---
+if ! command -v gh &>/dev/null; then
+  echo "⬇  gh CLI not found — installing..."
+  GH_VERSION="2.67.0"
+  ARCH=$(uname -m)
+  [[ "$ARCH" == "arm64" ]] && GH_ARCH="macOS_arm64" || GH_ARCH="macOS_amd64"
+  GH_URL="https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.zip"
+  TMPDIR_GH=$(mktemp -d)
+  curl -fsSL "$GH_URL" -o "$TMPDIR_GH/gh.zip"
+  unzip -q "$TMPDIR_GH/gh.zip" -d "$TMPDIR_GH"
+  mkdir -p "$HOME/bin"
+  cp "$TMPDIR_GH/gh_${GH_VERSION}_${GH_ARCH}/bin/gh" "$HOME/bin/gh"
+  chmod +x "$HOME/bin/gh"
+  rm -rf "$TMPDIR_GH"
+  echo "   ✓ gh installed to ~/bin/gh"
+fi
+
 # --- Determine version ---
 if [[ -n "$1" ]]; then
   NEW_VERSION="$1"
