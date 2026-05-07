@@ -27,7 +27,23 @@ const MAX_LEARNED_PATTERNS = 500;
 const PRUNE_MIN_COUNT = 3;               // Transitions below this are pruned first
 const PRUNE_AGGRESSIVE_COUNT = 8;        // Second-pass prune threshold
 
-// ─── Bot Action Vocabulary ───────────────────────────────────────────────────
+// ─── Electron API type augmentation ──────────────────────────────────────────
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      platform: string;
+      readModelFile?: () => Promise<string | null>;
+      writeModelFile?: (data: string) => Promise<boolean>;
+    };
+  }
+}
+
+function isElectron(): boolean {
+  return typeof window !== 'undefined' && window.electronAPI?.readModelFile != null;
+}
+
+
 
 export type BotAction =
   | 'play_landscape'
@@ -986,17 +1002,23 @@ export class WillowAI {
   // ── Persistence ────────────────────────────────────────────────────────────
 
   private saveToStorage(): void {
+    const json = JSON.stringify(this.model);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.model));
+      localStorage.setItem(STORAGE_KEY, json);
     } catch {
       // Storage full — try pruning harder
       this.model.qt = {};
       this.model.tn = 0;
+      const pruned = JSON.stringify(this.model);
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.model));
+        localStorage.setItem(STORAGE_KEY, pruned);
       } catch {
         // Give up silently
       }
+    }
+    // Mirror to Electron file storage (fire-and-forget)
+    if (isElectron()) {
+      window.electronAPI!.writeModelFile!(json).catch(() => { /* ignore */ });
     }
   }
 
@@ -1009,6 +1031,37 @@ export class WillowAI {
       return null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * In Electron, read the model file from disk and sync it into localStorage if it
+   * has more data (more games played) than what's currently stored. Call this once
+   * at app startup before instantiating WillowAI for the first time.
+   */
+  static async syncFromElectronFile(): Promise<void> {
+    if (!isElectron()) return;
+    try {
+      const raw = await window.electronAPI!.readModelFile!();
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.v !== MODEL_VERSION) return;
+
+      // Compare with what's in localStorage — keep whichever has more data
+      let localGP = 0;
+      try {
+        const localRaw = localStorage.getItem(STORAGE_KEY);
+        if (localRaw) {
+          const localParsed = JSON.parse(localRaw);
+          localGP = localParsed?.gp ?? 0;
+        }
+      } catch { /* ignore */ }
+
+      if ((parsed.gp ?? 0) > localGP) {
+        localStorage.setItem(STORAGE_KEY, raw);
+      }
+    } catch {
+      // File missing or corrupt — no-op
     }
   }
 }

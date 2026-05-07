@@ -686,16 +686,18 @@ export class BotGameScreen {
       await this.delay(400);
 
       // play1
-      if (gs.phase === 'play1') {
+      if (!gs.winner && gs.phase === 'play1') {
         gs = await this.botPlayPhase(gs);
-        gs = advancePhase(gs, BOT_UID); // → combat
-        this.gameState = gs;
-        this.render();
-        await this.delay(400);
+        if (!gs.winner) {
+          gs = advancePhase(gs, BOT_UID); // → combat
+          this.gameState = gs;
+          this.render();
+          await this.delay(400);
+        }
       }
 
       // combat
-      if (gs.phase === 'combat') {
+      if (!gs.winner && gs.phase === 'combat') {
         gs = advancePhase(gs, BOT_UID); // none → pre
         gs = advancePhase(gs, BOT_UID); // pre → attackers
 
@@ -759,15 +761,17 @@ export class BotGameScreen {
       }
 
       // play2
-      if (gs.phase === 'play2') {
+      if (!gs.winner && gs.phase === 'play2') {
         gs = await this.botPlayPhase(gs);
-        gs = advancePhase(gs, BOT_UID); // → end
-        this.gameState = gs;
-        this.render();
-        await this.delay(300);
+        if (!gs.winner) {
+          gs = advancePhase(gs, BOT_UID); // → end
+          this.gameState = gs;
+          this.render();
+          await this.delay(300);
+        }
       }
 
-      if (gs.phase === 'end') {
+      if (!gs.winner && gs.phase === 'end') {
         gs = advancePhase(gs, BOT_UID);
         this.gameState = gs;
         this.render();
@@ -778,11 +782,18 @@ export class BotGameScreen {
 
     this.botRunning = false;
     this.render();
-    // After bot turn ends, player has priority — show turn popup then start inactivity timer
-    if (!this.gameState.winner) {
-      this.showTurnPopupFor(this.gameState);
-      this.startPlayerInactivityTimer();
+
+    // If the bot's actions (direct assignments bypassing setState) ended the game,
+    // trigger Willow learning now. If the game ended via setState (player action),
+    // onGameEnd was already called there and recording is null — so this is a no-op.
+    if (this.gameState.winner) {
+      this.willow.onGameEnd(this.gameState.winner, BOT_UID);
+      return;
     }
+
+    // After bot turn ends, player has priority — show turn popup then start inactivity timer
+    this.showTurnPopupFor(this.gameState);
+    this.startPlayerInactivityTimer();
   }
 
   private async botPlayPhase(gs: GameState): Promise<GameState> {
@@ -796,6 +807,7 @@ export class BotGameScreen {
 
     let landPlayed = landThisTurn;
     for (const c of [...botPs.hand]) {
+      if (gs.winner) return gs;
       if (landPlayed >= maxLand) break;
       if (CARD_DEFS[c.defId]?.type === 'landscape') {
         const next = playCard(gs, BOT_UID, c.id);
@@ -810,6 +822,8 @@ export class BotGameScreen {
       }
     }
 
+    if (gs.winner) return gs;
+
     // Play beings — Willow recommends play order
     const refreshedPs = getPlayerState(gs, BOT_UID);
     const beings = this.willow.recommendPlayOrder(
@@ -818,6 +832,7 @@ export class BotGameScreen {
     );
 
     for (const c of beings) {
+      if (gs.winner) return gs;
       const def = CARD_DEFS[c.defId];
       const next = playCard(gs, BOT_UID, c.id);
       if (next !== gs) {
@@ -838,8 +853,11 @@ export class BotGameScreen {
           this.render();
           await this.delay(400);
         }
+        if (gs.winner) return gs;
       }
     }
+
+    if (gs.winner) return gs;
 
     // Cast spells — Willow advises on targeting
     const currentPs = getPlayerState(gs, BOT_UID);
@@ -848,6 +866,7 @@ export class BotGameScreen {
       .sort((a, b) => (CARD_DEFS[a.defId]?.cost ?? 0) - (CARD_DEFS[b.defId]?.cost ?? 0));
 
     for (const c of spells) {
+      if (gs.winner) return gs;
       const def = CARD_DEFS[c.defId];
       if (!def || !def.cost) continue;
       const botWP = getPlayerState(gs, BOT_UID).willPower;
@@ -891,6 +910,7 @@ export class BotGameScreen {
           this.render();
           await this.delay(400);
         }
+        if (gs.winner) return gs;
       }
     }
 

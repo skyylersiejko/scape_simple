@@ -190,4 +190,8 @@ function startGame(): void {
   app.appendChild(screen.getElement());
 }
 
-showStartScreen();
+// On Electron, sync the file-based model into localStorage before first render.
+// On web, this resolves immediately (no-op).
+WillowAI.syncFromElectronFile().then(() => {
+  showStartScreen();
+});
