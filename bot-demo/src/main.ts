@@ -157,7 +157,7 @@ function attachWillowWidgetListeners(): void {
 
 function showStartScreen(): void {
   app.innerHTML = `
-    <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:24px;background:rgba(51, 0, 51);">
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:24px;background:rgba(51, 0, 51);">
       ${buildWillowWidget()}
       <img src="${LOGO_URL}" alt="Scape" style="max-width:min(420px,80vw);height:auto;" />
       <button id="btn-play" style="

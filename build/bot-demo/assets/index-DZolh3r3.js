@@ -677,7 +677,7 @@
       </div>
     </div>
   `}function Ct(){const s=document.getElementById("lr-slider"),e=document.getElementById("lr-label");s?.addEventListener("input",()=>{const t=parseInt(s.value,10)/100;B.setLearningRate(t),e&&(e.textContent=ze(t))}),document.getElementById("btn-w-export")?.addEventListener("click",()=>{const n=new B().exportModel(),a=new Blob([n],{type:"application/json"}),r=URL.createObjectURL(a),i=document.createElement("a");i.href=r,i.download=`willow-model-${Date.now()}.json`,i.click(),URL.revokeObjectURL(r)}),document.getElementById("btn-w-import")?.addEventListener("click",()=>{const t=document.createElement("input");t.type="file",t.accept=".json",t.onchange=()=>{const n=t.files?.[0];if(!n)return;const a=new FileReader;a.onload=()=>{new B().importModel(a.result)?ie():alert("Invalid or incompatible Willow model file.")},a.readAsText(n)},t.click()}),document.getElementById("btn-w-reset")?.addEventListener("click",()=>{confirm("Reset all Willow learning data? This cannot be undone.")&&(new B().resetModel(),ie())})}function ie(){ye.innerHTML=`
-    <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:24px;background:rgba(51, 0, 51);">
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:24px;background:rgba(51, 0, 51);">
       ${$t()}
       <img src="${Tt}" alt="Scape" style="max-width:min(420px,80vw);height:auto;" />
       <button id="btn-play" style="

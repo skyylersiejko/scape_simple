@@ -26,9 +26,9 @@
   --glow-gold: 0 0 10px #ffd700, 0 0 20px #ffd70088;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { zoom: 1.15; }
-html, body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono', monospace; height: 100vh; height: 100dvh; width: 100vw; overflow: hidden; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-#app { height: 100vh; overflow: hidden; display: flex; flex-direction: column; max-width: 2200px; max-height: 1400px; margin: 0 auto; }
+html { background: var(--bg); overflow: hidden; height: 100dvh; width: 100vw; }
+body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono', monospace; width: calc(100vw / 1.15); height: calc(100dvh / 1.15); overflow: hidden; transform: scale(1.15); transform-origin: top center; margin: 0 auto; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+#app { height: 100%; overflow: hidden; display: flex; flex-direction: column; max-width: 2200px; max-height: 1400px; margin: 0 auto; }
 
 /* Range slider thumb */
 input[type="range"]::-webkit-slider-thumb {
@@ -228,7 +228,7 @@ h3 { font-size: 10px; color: var(--text); }
 .card-ancient { border-color: var(--gold); box-shadow: 0 0 8px var(--gold); }
 .card-dots { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; flex-wrap: wrap; max-width: 20px; }
 .dot { width: 4px; height: 4px; background: var(--gold); border-radius: 50%; }
-.game-screen { height:100vh; height:100dvh; width:100vw; max-width:1920px; max-height:1200px; margin:0 auto; display:flex; flex-direction:column; background:linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); padding:0; overflow:hidden; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.game-screen { height:100%; width:100%; max-width:1920px; max-height:1200px; margin:0 auto; display:flex; flex-direction:column; background:linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); padding:0; overflow:hidden; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 .area-label { font-family: 'Press Start 2P', monospace; font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
 .game-info-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: nowrap; gap: 8px; flex-shrink:0; }
 .player-stats { display: flex; align-items: center; gap: 12px; font-size: 11px; }
@@ -321,7 +321,7 @@ h3 { font-size: 10px; color: var(--text); }
 .mt-16 { margin-top: 16px; }
 
 /* ── Ancient Selection ───────────────────────────────────────────── */
-.ancient-selection-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 20px; background:radial-gradient(ellipse at 50% 0%, #3d2a0044 0%, transparent 70%), var(--bg); }
+.ancient-selection-screen { min-height:100%; display:flex; flex-direction:column; align-items:center; padding:24px 20px; background:radial-gradient(ellipse at 50% 0%, #3d2a0044 0%, transparent 70%), var(--bg); }
 .ancient-selection-header { text-align:center; margin-bottom:24px; }
 .ancient-selection-title { font-family:'Press Start 2P',monospace; font-size:16px; color:var(--gold); text-shadow:var(--glow-gold); margin-bottom:8px; }
 .ancient-selection-subtitle { font-size:11px; color:var(--text-dim); max-width:500px; }
