@@ -20,12 +20,12 @@ const STORAGE_KEY = 'willow_ai_model_v1';
 const LEARNING_RATE_KEY = 'willow_learning_rate';
 const MODEL_VERSION = 1;
 const MAX_MODEL_BYTES = 2 * 1024 * 1024; // 2 MB
-const DEFAULT_LEARNED_THRESHOLD = 5;     // Minimum visits before pattern extraction
-const DEFAULT_LEARNED_REWARD_MIN = 0.15; // Minimum avg reward to become a "learned key"
-const DISCOUNT_FACTOR = 0.9;             // γ for backward reward propagation
+const DEFAULT_LEARNED_THRESHOLD = 1;     // Minimum visits before pattern extraction
+const DEFAULT_LEARNED_REWARD_MIN = 0;    // Minimum avg reward — 0 means any net-positive result is captured
+const DISCOUNT_FACTOR = 0.95;            // γ for backward reward propagation
 const MAX_LEARNED_PATTERNS = 500;
-const PRUNE_MIN_COUNT = 3;               // Transitions below this are pruned first
-const PRUNE_AGGRESSIVE_COUNT = 8;        // Second-pass prune threshold
+const PRUNE_MIN_COUNT = 2;               // Transitions below this are pruned first
+const PRUNE_AGGRESSIVE_COUNT = 5;        // Second-pass prune threshold
 
 // ─── Electron API type augmentation ──────────────────────────────────────────
 
@@ -59,7 +59,13 @@ export type BotAction =
   | 'respond_cancel' | 'respond_pass'
   | 'use_ancient'
   | 'pass_priority'
-  | 'skip';
+  | 'skip'
+  // Ritual actions
+  | 'ritual_landscape_draw'
+  | 'ritual_void_cancel'
+  | 'ritual_cultivate'
+  | 'ritual_nourish'
+  | 'ritual_evolve';
 
 // ─── Internal Types ──────────────────────────────────────────────────────────
 
@@ -67,6 +73,7 @@ type WPBracket = 'critical' | 'low' | 'mid' | 'high';
 type HandBracket = 'empty' | 'few' | 'normal' | 'many';
 type TempoBracket = 'opening' | 'early' | 'mid' | 'late';
 type BoardAdv = 'losing' | 'even' | 'winning';
+type YardBracket = 'empty' | 'small' | 'medium' | 'large';
 
 interface CompressedState {
   phase: string;
@@ -86,6 +93,11 @@ interface CompressedState {
   hasCancel: boolean;
   hasGrow: boolean;
   boardAdv: BoardAdv;
+  // Ritual features
+  hasRitualProgress: boolean; // any card already in bot's ritual zone
+  hasYardBeings: boolean;     // can potentially Cultivate
+  hasYardLandscapes: boolean; // can potentially Nourish
+  botYard: YardBracket;       // for Void Cancel / Last Breath awareness
 }
 
 interface TransitionRecord {
@@ -224,6 +236,13 @@ function hasCardType(hand: CardInstance[], spellType: string): boolean {
 
 // ─── State Compression & Hashing ─────────────────────────────────────────────
 
+function discretizeYard(size: number): YardBracket {
+  if (size === 0) return 'empty';
+  if (size <= 3) return 'small';
+  if (size <= 7) return 'medium';
+  return 'large';
+}
+
 function compressState(gs: GameState, botUid: string): CompressedState {
   const bps = getPS(gs, botUid);
   const pps = getOppPS(gs, botUid);
@@ -249,6 +268,10 @@ function compressState(gs: GameState, botUid: string): CompressedState {
     hasCancel: hasCardType(bps.hand, 'cancel'),
     hasGrow: hasCardType(bps.hand, 'grow'),
     boardAdv: boardAdvantage(bp, pp),
+    hasRitualProgress: bps.ritualZone.length > 0,
+    hasYardBeings: bps.yard.some(c => CARD_DEFS[c.defId]?.type === 'being'),
+    hasYardLandscapes: bps.yard.some(c => CARD_DEFS[c.defId]?.type === 'landscape'),
+    botYard: discretizeYard(bps.yard.length),
   };
 }
 
@@ -262,6 +285,9 @@ function hashState(cs: CompressedState): string {
     cs.stackDepth, cs.topStackType,
     cs.hasCancel ? 1 : 0, cs.hasGrow ? 1 : 0,
     cs.boardAdv,
+    cs.hasRitualProgress ? 1 : 0,
+    cs.hasYardBeings ? 1 : 0, cs.hasYardLandscapes ? 1 : 0,
+    cs.botYard,
   ].join('|');
 }
 
@@ -294,6 +320,12 @@ const HEURISTIC_PRIORS: Partial<Record<BotAction, number>> = {
   use_ancient: 0.30,
   pass_priority: 0.05,
   skip: 0.0,
+  // Ritual actions — generally high value when conditions are met
+  ritual_landscape_draw: 0.45,
+  ritual_void_cancel: 0.40,
+  ritual_cultivate: 0.38,
+  ritual_nourish: 0.30,
+  ritual_evolve: 0.28,
 };
 
 // ─── Default Model ───────────────────────────────────────────────────────────
@@ -750,6 +782,7 @@ export class WillowAI {
     winRate: string;
     patternsLearned: number;
     totalTransitions: number;
+    qtEntries: number;
     modelSizeKB: number;
     explorationRate: string;
   } {
@@ -763,6 +796,7 @@ export class WillowAI {
         : 'N/A',
       patternsLearned: this.model.lp.length,
       totalTransitions: this.model.tn,
+      qtEntries: Object.values(this.model.qt).reduce((s, v) => s + Object.keys(v).length, 0),
       modelSizeKB: Math.round(size / 1024),
       explorationRate: (this.explorationRate() * 100).toFixed(1) + '%',
     };
@@ -789,9 +823,10 @@ export class WillowAI {
 
   private explorationRate(): number {
     const lr = WillowAI.getLearningRate();
-    // Higher learning rate → faster decay of exploration (more exploitation)
-    const decayBase = 0.90 + (1 - lr) * 0.09; // lr=1→0.90, lr=0→0.99
-    return Math.max(0.05, 0.5 * Math.pow(decayBase, this.model.gp));
+    // Higher learning rate → faster decay of exploration (more exploitation).
+    // Reduced initial rate (0.4) and faster decay so patterns are exploited after ~20 games.
+    const decayBase = 0.88 + (1 - lr) * 0.08; // lr=1→0.88, lr=0→0.96
+    return Math.max(0.05, 0.4 * Math.pow(decayBase, this.model.gp));
   }
 
   // ── Learned Pattern Check ──────────────────────────────────────────────────
@@ -801,7 +836,8 @@ export class WillowAI {
     let best: LearnedPattern | null = null;
 
     for (const lp of this.model.lp) {
-      if (lp.sh === stateHash && avSet.has(lp.a) && lp.c >= 0.7) {
+      // Only use patterns with positive avg reward (avoid learned-loss patterns)
+      if (lp.sh === stateHash && avSet.has(lp.a) && lp.c >= 0.4 && lp.r >= 0) {
         if (!best || lp.c > best.c || (lp.c === best.c && lp.r > best.r)) {
           best = lp;
         }
@@ -862,7 +898,7 @@ export class WillowAI {
 
     const lr = WillowAI.getLearningRate();
     // Higher learning rate → lower thresholds (learn faster)
-    const threshold = Math.max(2, Math.round(DEFAULT_LEARNED_THRESHOLD * (1.5 - lr)));
+    const threshold = Math.max(1, Math.round(DEFAULT_LEARNED_THRESHOLD * (1.5 - lr)));
     const rewardMin = DEFAULT_LEARNED_REWARD_MIN * (1.3 - lr * 0.6);
 
     for (const [sh, actions] of Object.entries(this.model.qt)) {
@@ -871,7 +907,7 @@ export class WillowAI {
         const avgReward = tr.r / tr.n;
         if (avgReward < rewardMin) continue;
 
-        const confidence = tr.n / (tr.n + threshold); // Bayesian-ish
+        const confidence = tr.n / (tr.n + threshold + 1); // Bayesian-ish; +1 keeps it < 1
         const key = `${sh}|${a}`;
 
         if (existing.has(key)) {

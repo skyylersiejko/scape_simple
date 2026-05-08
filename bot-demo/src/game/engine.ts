@@ -320,6 +320,10 @@ function replenishPhase(state: GameState, uid: string): GameState {
 }
 
 function drawPhase(state: GameState, uid: string): GameState {
+  // The starting player skips their draw on the very first turn of the game
+  // (opening hands are already dealt). All other turns the active player draws one card.
+  // Each player draws only on their own turn — not during the opponent's draw phase.
+  if (state.turnNumber === 1) return state;
   return drawCards(state, uid, 1);
 }
 

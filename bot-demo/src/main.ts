@@ -26,8 +26,14 @@ function buildWillowWidget(): string {
   const lrPct = Math.round(lr * 100);
   const lrLabel = lrToLabel(lr);
 
-  // Progress bar fill based on patterns learned (cap display at 500)
-  const learnPct = Math.min(100, Math.round(s.patternsLearned / 5));
+  // Progress bar fill based on qtEntries analyzed (cap display at 500 for 100%)
+  const learnPct = Math.min(100, Math.round(s.qtEntries / 5));
+  // Show patterns if any, otherwise show total Q-table entries so user sees learning after every game
+  const learnLabel = s.patternsLearned > 0
+    ? `${s.patternsLearned} patterns learned`
+    : s.qtEntries > 0
+      ? `${s.qtEntries} moves analyzed`
+      : '0 patterns learned';
 
   const statusDot = hasModel
     ? `<span style="color:var(--green)">●</span>`
@@ -69,7 +75,7 @@ function buildWillowWidget(): string {
       <div style="margin:12px 0 8px;height:6px;background:var(--bg3);border:1px solid var(--border)">
         <div style="height:100%;width:${learnPct}%;background:var(--purple-light);transition:width .3s"></div>
       </div>
-      <div style="font-size:11px;color:var(--text-dim);text-align:right">${s.patternsLearned} patterns learned</div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:right">${learnLabel}</div>
 
       <div style="margin:14px 0 6px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">

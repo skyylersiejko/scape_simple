@@ -26,8 +26,9 @@
   --glow-gold: 0 0 10px #ffd700, 0 0 20px #ffd70088;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html { zoom: 1.15; }
 html, body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono', monospace; height: 100vh; height: 100dvh; width: 100vw; overflow: hidden; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-#app { height: 100vh; overflow: hidden; display: flex; flex-direction: column; max-width: 1920px; max-height: 1200px; margin: 0 auto; }
+#app { height: 100vh; overflow: hidden; display: flex; flex-direction: column; max-width: 2200px; max-height: 1400px; margin: 0 auto; }
 
 /* Range slider thumb */
 input[type="range"]::-webkit-slider-thumb {

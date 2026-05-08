@@ -797,6 +797,10 @@ export class BotGameScreen {
   }
 
   private async botPlayPhase(gs: GameState): Promise<GameState> {
+    // ── Ritual opportunities ─────────────────────────────────────────────────
+    gs = await this.botCheckRituals(gs);
+    if (gs.winner) return gs;
+
     const botPs = getPlayerState(gs, BOT_UID);
 
     // Play landscape (if allowed, no priority)
@@ -917,6 +921,159 @@ export class BotGameScreen {
     return gs;
   }
 
+  // ── Bot Ritual Logic ────────────────────────────────────────────────────────
+
+  /**
+   * Evaluate and execute ritual opportunities before the bot's normal play phase.
+   * Handles: Landscape Draw, Void Cancel, Nourish, Cultivate.
+   */
+  private async botCheckRituals(gs: GameState): Promise<GameState> {
+    if (gs.winner) return gs;
+    const ps = getPlayerState(gs, BOT_UID);
+
+    // 1. Landscape Draw ritual: put 2 landscapes into ritual zone → draw 1 card.
+    //    Only do this when we have enough spare lands (>= 4 on battlefield total).
+    const allLands = ps.battlefield.filter(c => CARD_DEFS[c.defId]?.type === 'landscape');
+    if (allLands.length >= 4) {
+      const l1 = allLands[0];
+      const l2 = allLands[1];
+      let next = addToRitualZone(gs, BOT_UID, l1.id);
+      next = addToRitualZone(next, BOT_UID, l2.id);
+      if (next !== gs) {
+        gs = next;
+        this.willow.recordBotAction(gs, BOT_UID, 'ritual_landscape_draw', 0.25);
+        this.gameState = gs;
+        this.render();
+        await this.delay(400);
+        if (gs.pendingRitualPopup) {
+          this.showRitualPopupToast(gs.pendingRitualPopup);
+          gs = { ...gs, pendingRitualPopup: undefined };
+          this.gameState = gs;
+        }
+      }
+      if (gs.winner) return gs;
+    }
+
+    // 2. Void Cancel ritual: cast Cancel from hand into ritual zone when yard >= 5
+    //    → exiles opponent's entire graveyard. Very powerful mid/late game.
+    if (getPlayerState(gs, BOT_UID).yard.length >= 5) {
+      const freshPs = getPlayerState(gs, BOT_UID);
+      const cancelCard = freshPs.hand.find(c => CARD_DEFS[c.defId]?.spellType === 'cancel');
+      if (cancelCard) {
+        const next = addSpellToRitualZone(gs, BOT_UID, cancelCard.id);
+        if (next !== gs) {
+          gs = next;
+          this.willow.recordBotAction(gs, BOT_UID, 'ritual_void_cancel', 0.35);
+          this.gameState = gs;
+          this.render();
+          await this.delay(400);
+          if (gs.pendingRitualPopup) {
+            this.showRitualPopupToast(gs.pendingRitualPopup);
+            gs = { ...gs, pendingRitualPopup: undefined };
+            this.gameState = gs;
+          }
+        }
+        if (gs.winner) return gs;
+      }
+    }
+
+    // 3. Nourish ritual: sacrifice a cheap battlefield being to return a landscape from yard to hand.
+    //    Use when yard has a landscape AND bot has a low-value being to sacrifice.
+    const nourPs = getPlayerState(gs, BOT_UID);
+    const yardLand = nourPs.yard.find(c => CARD_DEFS[c.defId]?.type === 'landscape');
+    if (yardLand) {
+      // Pick the lowest-power being to sacrifice
+      const sacBeing = nourPs.battlefield
+        .filter(c => CARD_DEFS[c.defId]?.type === 'being')
+        .sort((a, b) => (CARD_DEFS[a.defId]?.power ?? 0) - (CARD_DEFS[b.defId]?.power ?? 0))[0];
+      if (sacBeing && (CARD_DEFS[sacBeing.defId]?.power ?? 0) <= 2) {
+        const next = nourish(gs, BOT_UID, sacBeing.id, yardLand.id);
+        if (next !== gs) {
+          gs = next;
+          this.willow.recordBotAction(gs, BOT_UID, 'ritual_nourish', 0.2);
+          this.gameState = gs;
+          this.render();
+          await this.delay(400);
+          if (gs.pendingRitualPopup) {
+            this.showRitualPopupToast(gs.pendingRitualPopup);
+            gs = { ...gs, pendingRitualPopup: undefined };
+            this.gameState = gs;
+          }
+        }
+        if (gs.winner) return gs;
+      }
+    }
+
+    // 4. Cultivate ritual: summon a being from yard by sacrificing beings with equal total power.
+    //    Finds the highest-power yard being we can afford to summon.
+    const cultOpp = this.findCultivateOpportunity(gs);
+    if (cultOpp) {
+      const next = cultivate(gs, BOT_UID, cultOpp.yardBeingId, cultOpp.sacrificeIds);
+      if (next !== gs) {
+        gs = next;
+        this.willow.recordBotAction(gs, BOT_UID, 'ritual_cultivate', 0.30);
+        this.gameState = gs;
+        this.render();
+        await this.delay(400);
+        if (gs.pendingRitualPopup) {
+          this.showRitualPopupToast(gs.pendingRitualPopup);
+          gs = { ...gs, pendingRitualPopup: undefined };
+          this.gameState = gs;
+        }
+      }
+    }
+
+    return gs;
+  }
+
+  /**
+   * Find the best Cultivate opportunity: the highest-power yard being we can summon
+   * by sacrificing a subset of battlefield beings with exactly matching total power.
+   */
+  private findCultivateOpportunity(gs: GameState): { yardBeingId: string; sacrificeIds: string[] } | null {
+    const ps = getPlayerState(gs, BOT_UID);
+    const yardBeings = ps.yard
+      .filter(c => CARD_DEFS[c.defId]?.type === 'being')
+      .sort((a, b) => (CARD_DEFS[b.defId]?.power ?? 0) - (CARD_DEFS[a.defId]?.power ?? 0));
+
+    const bfBeings = ps.battlefield.filter(c => CARD_DEFS[c.defId]?.type === 'being');
+    if (bfBeings.length === 0) return null;
+
+    for (const yardBeing of yardBeings) {
+      const targetPower = CARD_DEFS[yardBeing.defId]?.power ?? 0;
+      if (targetPower === 0) continue;
+      const combo = this.findSubsetSumBeings(bfBeings, targetPower);
+      if (combo) {
+        // Only bother if the yard being is not worse than what we sacrifice
+        const yardToughness = CARD_DEFS[yardBeing.defId]?.toughness ?? 0;
+        const sacToughness = combo.reduce((s, c) => s + (CARD_DEFS[c.defId]?.toughness ?? 0), 0);
+        if (yardToughness >= sacToughness) {
+          return { yardBeingId: yardBeing.id, sacrificeIds: combo.map(c => c.id) };
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Find a subset of beings whose total power equals the target (brute-force, fine for n<=8). */
+  private findSubsetSumBeings(beings: CardInstance[], target: number): CardInstance[] | null {
+    const n = Math.min(beings.length, 12); // cap to avoid exponential blowup
+    for (let mask = 1; mask < (1 << n); mask++) {
+      let sum = 0;
+      for (let i = 0; i < n; i++) {
+        if (mask & (1 << i)) sum += CARD_DEFS[beings[i].defId]?.power ?? 0;
+      }
+      if (sum === target) {
+        const result: CardInstance[] = [];
+        for (let i = 0; i < n; i++) {
+          if (mask & (1 << i)) result.push(beings[i]);
+        }
+        return result;
+      }
+    }
+    return null;
+  }
+
   // ── Rendering ───────────────────────────────────────────────────────────────
 
   private render(): void {
@@ -943,6 +1100,11 @@ export class BotGameScreen {
       `;
     }).join('');
 
+    const playerGoesFirst = this.gameState.currentTurn === this.currentUser.uid;
+    const firstTurnNote = playerGoesFirst
+      ? 'The starting player skips their first draw — your opening hand is your draw.'
+      : 'You will draw a card at the start of your first turn.';
+
     this.container.innerHTML = `
       <div class="ancient-selection-screen">
         <div class="ancient-selection-header">
@@ -951,6 +1113,25 @@ export class BotGameScreen {
         </div>
         <div class="ancient-selection-grid">
           ${ancientCards}
+        </div>
+        <div style="
+          margin-top:28px;text-align:center;
+          background:var(--bg2);border:2px solid var(--gold);
+          padding:18px 28px;max-width:480px;
+          box-shadow:3px 3px 0 #3d2a00,0 0 18px #ffd70033;
+        ">
+          <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:10px">
+            ⚔ WHO GOES FIRST
+          </div>
+          <div style="font-size:15px;color:var(--text);margin-bottom:6px">
+            ${playerGoesFirst
+              ? '🌿 <span style="color:var(--green)">You</span> go first!'
+              : '🤖 <span style="color:var(--red)">Willow AI</span> goes first.'}
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.6">${firstTurnNote}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:10px;color:var(--purple-bright)">
+            ↑ Select your Ancient above to begin
+          </div>
         </div>
       </div>
     `;
