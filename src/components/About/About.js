@@ -59,6 +59,11 @@ With a new type of game comes a new way of playing and practicing. You can even 
 giving you a unique experience every time. Don't forget you can change the aggressiveness of your Willow to make it more or less challenging. Good luck!
         </div>
 
+  <div className={"Heading"}>Available</div>
+        <div className={"Text"}>
+              Windows, MacOs, and Browser. 
+
+        </div>
 
         <div style = {{color: "white", fontStyle:"italic", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"20px 0", maxWidth:"100%", margin:"0 auto"  }}>"I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the games integrity."</div>
 
