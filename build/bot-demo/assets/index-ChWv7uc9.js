@@ -38,7 +38,7 @@
             ⚔ WHO GOES FIRST
           </div>
           <div style="font-size:15px;color:var(--text);margin-bottom:6px">
-            ${t?'🌿 <span style="color:var(--green)">You</span> go first!':'🤖 <span style="color:var(--red)">Willow AI</span> goes first.'}
+            ${t?'<span style="color:var(--green)">You</span> go first!':'🤖 <span style="color:var(--red)">Willow AI</span> goes first.'}
           </div>
           <div style="font-size:11px;color:var(--text-dim);line-height:1.6">${n}</div>
           <div style="font-size:11px;color:var(--text-dim);margin-top:10px;color:var(--purple-bright)">
@@ -232,12 +232,12 @@
           <button id="btn-settings" class="btn-settings" title="Settings">⚙</button>
         </div>
       </div>
-    `}buildActionBar(e,t,n){if(!t&&!this.waitingOnPlayer||this.botRunning&&!this.waitingOnPlayer)return"";const a=this.currentUser.uid,r=y(e,a),i=[],o=[];if(this.waitingOnPlayer)!t&&e.phase==="combat"&&e.combatStep==="blocks"?(i.push('<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">✨ Cast Spell</button>'),o.push('<button id="btn-done-blocks" class="btn-green pulse-anim">🛡 Done Blocking</button>')):!t&&e.phase==="combat"&&e.combatStep==="attackers"?i.push('<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass</button>'):!t&&e.phase==="combat"&&e.combatStep==="pre-damage"?i.push('<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass (before damage)</button>'):o.push('<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>');else if(t&&n)if(e.phase==="combat"&&e.combatStep==="attackers"){const c=r.battlefield.filter(l=>{const d=p[l.defId];return d?.type==="being"&&(!l.exhausted||d.isFlyer)&&!r.attackers.includes(l.id)&&!(d.id==="wasp"&&l.summonedThisTurn)});c.length>0&&i.push(`<button id="btn-attack-all" class="btn-danger" style="font-size:11px;padding:8px 16px">⚔ Attack with All (${c.length})</button>`),i.push('<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">⚡ Cast Spells / Pass</button>'),o.push('<button id="btn-done-attackers" class="btn-danger" style="font-size:11px;padding:8px 16px">✅ Done Declaring Attackers</button>')}else e.phase==="combat"&&e.combatStep==="blocks"||(e.phase==="combat"&&e.combatStep==="pre-damage"?o.push('<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (before damage)</button>'):e.phase==="combat"&&e.combatStep==="pre"?o.push('<button id="btn-next-phase" class="btn-green">▶ Enter Attackers Phase</button>'):e.phase==="combat"&&e.combatStep==="none"?o.push('<button id="btn-next-phase" class="btn-green">▶ Enter Combat</button>'):(i.push('<button id="btn-rituals" class="btn-gold">🔮 Rituals</button>'),r.yard.length>=10&&i.push('<button id="btn-last-breath" class="btn-danger">💀 Last Breath</button>'),o.push('<button id="btn-pass-priority" class="btn-gold">⚡ Pass Priority</button>'),o.push('<button id="btn-next-phase" class="btn-green">▶ Next Phase</button>'),o.push('<button id="btn-end-turn">⏩ End Turn</button>')));return!t&&e.phase==="combat"&&e.combatStep==="blocks"&&!this.waitingOnPlayer&&o.push('<button id="btn-done-blocks" class="btn-green">🛡 Done Blocking</button>'),i.length===0&&o.length===0?"":`
+    `}buildActionBar(e,t,n){if(!t&&!this.waitingOnPlayer||this.botRunning&&!this.waitingOnPlayer)return"";const a=this.currentUser.uid,r=y(e,a),i=[],o=[];if(this.waitingOnPlayer)!t&&e.phase==="combat"&&e.combatStep==="blocks"?(i.push('<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">✨ Cast Spell</button>'),o.push('<button id="btn-done-blocks" class="btn-green pulse-anim">Done Blocking</button>')):!t&&e.phase==="combat"&&e.combatStep==="attackers"?i.push('<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass</button>'):!t&&e.phase==="combat"&&e.combatStep==="pre-damage"?i.push('<button id="btn-pass-priority" class="btn-gold pulse-anim" style="font-size:11px;padding:8px 16px">✨ Cast Spell / ⚡ Pass (before damage)</button>'):o.push('<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>');else if(t&&n)if(e.phase==="combat"&&e.combatStep==="attackers"){const c=r.battlefield.filter(l=>{const d=p[l.defId];return d?.type==="being"&&(!l.exhausted||d.isFlyer)&&!r.attackers.includes(l.id)&&!(d.id==="wasp"&&l.summonedThisTurn)});c.length>0&&i.push(`<button id="btn-attack-all" class="btn-danger" style="font-size:11px;padding:8px 16px">⚔ Attack with All (${c.length})</button>`),i.push('<button id="btn-pass-priority" class="btn-gold" style="font-size:11px;padding:8px 16px">⚡ Cast Spells / Pass</button>'),o.push('<button id="btn-done-attackers" class="btn-danger" style="font-size:11px;padding:8px 16px">✅ Done Declaring Attackers</button>')}else e.phase==="combat"&&e.combatStep==="blocks"||(e.phase==="combat"&&e.combatStep==="pre-damage"?o.push('<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (before damage)</button>'):e.phase==="combat"&&e.combatStep==="pre"?o.push('<button id="btn-next-phase" class="btn-green">▶ Enter Attackers Phase</button>'):e.phase==="combat"&&e.combatStep==="none"?o.push('<button id="btn-next-phase" class="btn-green">▶ Enter Combat</button>'):(i.push('<button id="btn-rituals" class="btn-gold">🔮 Rituals</button>'),r.yard.length>=10&&i.push('<button id="btn-last-breath" class="btn-danger">💀 Last Breath</button>'),o.push('<button id="btn-pass-priority" class="btn-gold">⚡ Pass Priority</button>'),o.push('<button id="btn-next-phase" class="btn-green">▶ Next Phase</button>'),o.push('<button id="btn-end-turn">⏩ End Turn</button>')));return!t&&e.phase==="combat"&&e.combatStep==="blocks"&&!this.waitingOnPlayer&&o.push('<button id="btn-done-blocks" class="btn-green">🛡 Done Blocking</button>'),i.length===0&&o.length===0?"":`
       <div class="action-bar">
         <div class="action-bar-left">${i.join("")}</div>
         <div class="action-bar-right">${o.join("")}</div>
       </div>
-    `}buildStackPopup(e,t){if(!(e.stack.length>0||this.waitingOnPlayer))return"";const a=[...e.stack].reverse().map((i,o)=>{const c=p[i.cardDefId],l=o===0,d=c?{being:"🐉",landscape:"🌿",spell:"✨",ancient:"⭐"}[c.type]??"?":"?",u=c?.imageUrl?`<img src="${c.imageUrl}" alt="${c.name}" class="stack-card-img" onerror="this.style.display='none'" />`:`<div class="stack-card-img-placeholder">${d}</div>`;return`
+    `}buildStackPopup(e,t){if(!(e.stack.length>0||this.waitingOnPlayer))return"";const a=[...e.stack].reverse().map((i,o)=>{const c=p[i.cardDefId],l=o===0,d=c?{being:"",landscape:"",spell:"",ancient:""}[c.type]??"?":"?",u=c?.imageUrl?`<img src="${c.imageUrl}" alt="${c.name}" class="stack-card-img" onerror="this.style.display='none'" />`:`<div class="stack-card-img-placeholder">${d}</div>`;return`
         <div class="stack-entry ${l?"stack-top":""}">
           <div class="stack-entry-row">
             <div class="stack-card-preview">${u}</div>
@@ -250,19 +250,19 @@
         </div>
       `}).join("");return`
       <div class="stack-popup">
-        <div class="stack-title">📚 STACK</div>
+        <div class="stack-title">STACK</div>
         ${e.priorityPlayer===t?'<div class="priority-banner-player">⚡ You have priority — respond or pass</div>':'<div class="priority-banner-bot">⚡ Bot has priority</div>'}
         <div class="stack-list">${a||'<div style="color:var(--text-dim);font-size:13px">Empty</div>'}</div>
         ${this.waitingOnPlayer?'<button id="btn-pass-in-stack" class="btn-gold w-full mt-8">⚡ Pass Priority</button>':""}
       </div>
-    `}buildRitualZonePopup(e,t){const n=y(e,t);if(n.ritualZone.length===0)return"";const a=ke(n.ritualZone),r=a.length>0,i=n.ritualZone.map((c,l)=>{const d=p[c.defId],u={being:"🐉",landscape:"🌿",ancient:"⭐",spell:"✨"}[d?.type??""]||"?";return`
+    `}buildRitualZonePopup(e,t){const n=y(e,t);if(n.ritualZone.length===0)return"";const a=ke(n.ritualZone),r=a.length>0,i=n.ritualZone.map((c,l)=>{const d=p[c.defId],u={being:"",landscape:"",ancient:"",spell:""}[d?.type??""]||"?";return`
         <div class="ritual-popup-entry">
           <span class="ritual-pos">${l+1}</span>
           <span>${u} ${d?.name??"?"}</span>
         </div>
       `}).join(""),o=r?`<div style="font-size:8px;color:var(--gold);margin-top:4px;font-family:'Press Start 2P',monospace">${a.map(c=>`✨ ${c}`).join("<br>")}</div>`:"";return`
       <div class="ritual-zone-popup ${r?"ritual-zone-popup-forming":""}">
-        <div class="ritual-popup-title">🔮 RITUAL (${n.ritualZone.length})</div>
+        <div class="ritual-popup-title">RITUAL (${n.ritualZone.length})</div>
         <div class="ritual-popup-list">${i}</div>
         ${o}
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Right-click card to remove</div>
@@ -270,7 +270,7 @@
     `}buildGraveyardPopup(e){const t=this.showGraveyard==="opp",n=t?O(e,this.currentUser.uid):y(e,this.currentUser.uid);return`
       <div class="overlay" id="graveyard-overlay">
         <div class="modal" style="max-width:560px;width:90vw">
-          <div class="modal-title">🪦 ${t?"🤖 Bot Graveyard":"My Graveyard"} (${n.yard.length} cards)</div>
+          <div class="modal-title">${t?"Bot Graveyard":"My Graveyard"} (${n.yard.length} cards)</div>
           <div class="graveyard-grid">
             ${n.yard.length===0?'<div style="color:var(--text-dim);font-size:15px">Empty graveyard</div>':n.yard.map(r=>this.buildCardEl(r,!1,!1)).join("")}
           </div>
@@ -280,7 +280,7 @@
     `}buildAncientChoicePopup(){return`
       <div class="overlay" id="ancient-choice-overlay">
         <div class="modal">
-          <div class="modal-title" style="color:var(--gold)">🌱 Grow: Choose New Ancient</div>
+          <div class="modal-title" style="color:var(--gold)">Grow: Choose New Ancient</div>
           <p style="font-size:14px;color:var(--text-dim);margin-bottom:12px">A Landscape entered play. Choose your new Ancient:</p>
           <div class="ancient-choice-grid">
             ${Q.map(e=>{const t=p[e];return`<button class="btn-ancient-choice" data-defid="${e}">${t?.name}<br><span style="font-size:12px;color:#fff">${t?.description}</span></button>`}).join("")}
@@ -298,10 +298,10 @@
         <div class="card-name">${l.name}</div>
         ${I}
         ${r?'<div class="stack-badge-small">STACK</div>':""}
-        ${i?'<div class="block-select-indicator">🛡→</div>':""}
+        ${i?'<div class="block-select-indicator">→</div>':""}
         <div class="tooltip">${l.name}<br><span style="color:#fff">${l.description}</span></div>
       </div>
-    `}buildHandCardEl(e,t,n){const a=p[e.defId];if(!a)return"";const r={being:"🐉",landscape:"🌿",ancient:"⭐",spell:"✨"}[a.type]||"?",i=`card-${a.type}`,o=this.selectedCard===e.id?"selected":"",c=a.dots?Array(a.dots).fill('<span class="dot"></span>').join(""):"",l=a.imageUrl?`<img src="${a.imageUrl}" alt="${a.name}" onerror="this.style.display='none'" />`:`<div class="card-image-placeholder">${r}</div>`,d=a.type==="being"?`<div class="card-stats"><span class="card-power">${a.power}</span><span class="card-toughness">${a.toughness}</span><span style="color:var(--green-dim);font-size:7px">🌿${a.cost}</span></div>`:a.type==="spell"?`<div class="card-stats"><span class="card-cost">${a.cost}WP</span></div>`:"";return`
+    `}buildHandCardEl(e,t,n){const a=p[e.defId];if(!a)return"";const r={being:"",landscape:"",ancient:"",spell:""}[a.type]||"?",i=`card-${a.type}`,o=this.selectedCard===e.id?"selected":"",c=a.dots?Array(a.dots).fill('<span class="dot"></span>').join(""):"",l=a.imageUrl?`<img src="${a.imageUrl}" alt="${a.name}" onerror="this.style.display='none'" />`:`<div class="card-image-placeholder">${r}</div>`,d=a.type==="being"?`<div class="card-stats"><span class="card-power">${a.power}</span><span class="card-toughness">${a.toughness}</span><span style="color:var(--green-dim);font-size:7px">🌿${a.cost}</span></div>`:a.type==="spell"?`<div class="card-stats"><span class="card-cost">${a.cost}WP</span></div>`:"";return`
       <div class="card ${i} ${o} hand-card tooltip-container"
            data-id="${e.id}" data-def="${e.defId}" data-hand-index="${n}"
            draggable="${t?"true":"false"}"
@@ -317,7 +317,7 @@
         <div class="modal" style="text-align:center">
           <img src="${n?`${r}Winner.png`:`${r}Defeat.png`}" alt="${n?"Victory":"Defeat"}" class="win-overlay-image" />
           <div class="modal-title" style="${n?"color:var(--gold)":"color:var(--red)"}">
-            ${n?"🏆 VICTORY!":"💀 DEFEAT!"}
+            ${n?"VICTORY!":"DEFEAT!"}
           </div>
           <p style="margin-bottom:8px;font-size:12px;color:var(--text-dim)">${n?"You defeated the bot!":"The bot won this time!"}</p>
           ${a}

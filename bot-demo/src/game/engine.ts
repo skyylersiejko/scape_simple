@@ -521,7 +521,7 @@ export function resolveEntireStack(state: GameState): GameState {
   // STACK WAR: if stack had >4 cards, last player who played draws a card
   if (stackWarPlayer) {
     next = drawCards(next, stackWarPlayer, 1);
-    const warMsg = `⚔ STACK WAR: ${stackWarPlayer} draws a card for playing the last card!`;
+    const warMsg = `STACK WAR: ${stackWarPlayer} draws a card for playing the last card!`;
     next = addLog(next, warMsg);
     next = { ...next, pendingRitualPopup: warMsg };
   }
@@ -592,7 +592,7 @@ function resolveSpellEffect(state: GameState, uid: string, spellDefId: string, t
           const yard2 = [...counteredOwnerPs2.yard, card2];
           next = setPlayerState(next, countered2.playerId, { ...counteredOwnerPs2, limbo: limbo2, yard: yard2 });
         }
-        const ritualMsg = `🚫 5-YARD RITUAL: Exiled opponent's graveyard & countered ${CARD_DEFS[countered2.cardDefId]?.name ?? 'unknown'}!`;
+        const ritualMsg = `5-YARD RITUAL: Exiled opponent's graveyard & countered ${CARD_DEFS[countered2.cardDefId]?.name ?? 'unknown'}!`;
         next = addLog(next, ritualMsg);
         next = { ...next, pendingRitualPopup: ritualMsg };
       }
@@ -980,7 +980,7 @@ function checkWinConditions(state: GameState): GameState {
     const lastPlayer = state.stackHistoryPlays.length > 0
       ? state.stackHistoryPlays[state.stackHistoryPlays.length - 1].playerId
       : state.currentTurn;
-    const msg = `⚡ FINAL BLOW: Both players at 0 WP! ${lastPlayer} wins!`;
+    const msg = `FINAL BLOW: Both players at 0 WP! ${lastPlayer} wins!`;
     return addLog({ ...state, winner: lastPlayer }, msg);
   }
 
@@ -1182,7 +1182,7 @@ function processRitual(state: GameState, uid: string): GameState {
     switch (ritual.name) {
       case 'Landscape Draw': {
         next = drawCards(next, uid, 1);
-        const msg = '🌿 LANDSCAPE RITUAL: Sacrificed 2 landscapes, drew 1 card!';
+        const msg = 'LANDSCAPE RITUAL: Sacrificed 2 landscapes, drew 1 card!';
         next = addLog(next, `${uid} completed Landscape Draw ritual.`);
         next = { ...next, pendingRitualPopup: msg };
         break;
@@ -1190,7 +1190,7 @@ function processRitual(state: GameState, uid: string): GameState {
       case 'Ignite Surge':
       case 'Primal Ignite': {
         // Fire ignite for 3 damage (2+1 boost) — needs target selection
-        const msg = `🔥 ${ritual.name.toUpperCase()}: Ignite charges with +1 bonus damage! Choose a target.`;
+        const msg = `${ritual.name.toUpperCase()}: Ignite charges with +1 bonus damage! Choose a target.`;
         next = addLog(next, `${uid} completed ${ritual.name} ritual — ritual ignite pending!`);
         next = {
           ...next,
@@ -1201,7 +1201,7 @@ function processRitual(state: GameState, uid: string): GameState {
       }
       case 'Flock Control': {
         // Gain control of target being — needs target selection
-        const msg = '🦅 FLOCK CONTROL: Sacrifice two flyers — choose an opponent being to gain control of!';
+        const msg = 'FLOCK CONTROL: Sacrifice two flyers — choose an opponent being to gain control of!';
         next = addLog(next, `${uid} completed Flock Control ritual — target selection pending!`);
         next = {
           ...next,
@@ -1216,7 +1216,7 @@ function processRitual(state: GameState, uid: string): GameState {
         const oppPs = getOpponentState(next, uid);
         const exiled = [...oppPs.exile, ...oppPs.yard];
         next = setPlayerState(next, oppUid, { ...oppPs, yard: [], exile: exiled });
-        const voidMsg = '🚫 VOID CANCEL: 5-card yard threshold met — opponent\'s graveyard exiled!';
+        const voidMsg = 'VOID CANCEL: 5-card yard threshold met — opponent\'s graveyard exiled!';
         next = addLog(next, `${uid} completed Void Cancel — exiled opponent's yard.`);
         next = { ...next, pendingRitualPopup: voidMsg };
         break;
@@ -1360,7 +1360,7 @@ function checkStackRituals(
         const spikeOpp = spikeCaster === p1 ? p2 : p1;
         const oppPs = getPlayerState(next, spikeOpp);
         next = setPlayerState(next, spikeOpp, { ...oppPs, willPower: Math.max(0, oppPs.willPower - 2) });
-        const msg = '⚡ DOUBLE CANCEL SPIKE: Spike deals +2 bonus damage!';
+        const msg = 'DOUBLE CANCEL SPIKE: Spike deals +2 bonus damage!';
         next = addLog(next, msg);
         next = { ...next, pendingRitualPopup: msg };
       }
@@ -1374,7 +1374,7 @@ function checkStackRituals(
         const token = makeInstance('merfolk', growCaster);
         const casterPs = getPlayerState(next, growCaster);
         next = setPlayerState(next, growCaster, { ...casterPs, battlefield: [...casterPs.battlefield, token] });
-        const msg = '⭐ POWER SUMMON: A Merfolk token enters the battlefield!';
+        const msg = 'POWER SUMMON: A Merfolk token enters the battlefield!';
         next = addLog(next, msg);
         next = { ...next, pendingRitualPopup: msg };
       }
@@ -1395,7 +1395,7 @@ function checkStackRituals(
           const yard = [...targetPs.yard, land];
           next = setPlayerState(next, targetUid, { ...targetPs, battlefield: bf, yard });
         }
-        const msg = '🔥 FLAME WAVE: Opponent\'s landscape is destroyed!';
+        const msg = 'FLAME WAVE: Opponent\'s landscape is destroyed!';
         next = addLog(next, msg);
         next = { ...next, pendingRitualPopup: msg };
       }
@@ -1409,7 +1409,7 @@ function checkStackRituals(
         const token = makeInstance('flyer_token', igniteCaster);
         const casterPs = getPlayerState(next, igniteCaster);
         next = setPlayerState(next, igniteCaster, { ...casterPs, battlefield: [...casterPs.battlefield, token] });
-        const msg = '⚡ STORM FLYER: A 3/1 flyer token enters the battlefield!';
+        const msg = 'STORM FLYER: A 3/1 flyer token enters the battlefield!';
         next = addLog(next, msg);
         next = { ...next, pendingRitualPopup: msg };
       }
@@ -1421,7 +1421,7 @@ function checkStackRituals(
       const ps2 = getPlayerState(next, p2);
       next = setPlayerState(next, p1, { ...ps1, needsNewAncient: false });
       next = setPlayerState(next, p2, { ...ps2, needsNewAncient: false });
-      const msg = '🌀 ANCIENT STASIS: Both Grow spells cancel — neither player re-selects their Ancient!';
+      const msg = 'ANCIENT STASIS: Both Grow spells cancel — neither player re-selects their Ancient!';
       next = addLog(next, msg);
       next = { ...next, pendingRitualPopup: msg };
       break;
@@ -1430,7 +1430,7 @@ function checkStackRituals(
       // Each player draws a card
       next = drawCards(next, p1, 1);
       next = drawCards(next, p2, 1);
-      const msg = '📖 KNOWLEDGE DRAW: Grow + Cancel ritual — each player draws a card!';
+      const msg = 'KNOWLEDGE DRAW: Grow + Cancel ritual — each player draws a card!';
       next = addLog(next, msg);
       next = { ...next, pendingRitualPopup: msg };
       break;
@@ -1477,7 +1477,7 @@ export function cultivate(
   let next = setPlayerState(state, uid, {
     ...ps, battlefield: [...battlefield, summonedBeing], yard: newYard
   });
-  const msg = `🌱 CULTIVATE: ${yardBeingDef.name} summoned from yard (exhausted, cannot attack)!`;
+  const msg = `CULTIVATE: ${yardBeingDef.name} summoned from yard (exhausted, cannot attack)!`;
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return checkWinConditions(next);
@@ -1522,7 +1522,7 @@ export function study(
   // Resolve the spell effect
   next = resolveSpellEffect(next, uid, yardSpell.defId, target);
 
-  const msg = `📚 STUDY: ${spellDef.name} cast from yard! ${uid} takes ${damage} WP damage (spell exiled).`;
+  const msg = `STUDY: ${spellDef.name} cast from yard! ${uid} takes ${damage} WP damage (spell exiled).`;
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return checkWinConditions(next);
@@ -1556,7 +1556,7 @@ export function evolve(
   let next = setPlayerState(state, uid, {
     ...ps, battlefield, willPower: ps.willPower - wpToSpend
   });
-  const msg = `🌀 EVOLVE: Landscape transformed into ${wpToSpend}/${t} being! Spent ${wpToSpend} WP.`;
+  const msg = `EVOLVE: Landscape transformed into ${wpToSpend}/${t} being! Spent ${wpToSpend} WP.`;
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return checkWinConditions(next);
@@ -1590,7 +1590,7 @@ export function nourish(
   let next = setPlayerState(state, uid, {
     ...ps, battlefield, yard: yardWithBeing, hand
   });
-  const msg = `🌿 NOURISH: ${CARD_DEFS[being.defId]?.name} sacrificed — Landscape returned to hand!`;
+  const msg = `NOURISH: ${CARD_DEFS[being.defId]?.name} sacrificed — Landscape returned to hand!`;
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return next;
@@ -1606,7 +1606,7 @@ export function lastBreath(state: GameState, uid: string): GameState {
 
   const exile = [...ps.exile, ...ps.yard];
   let next = setPlayerState(state, uid, { ...ps, yard: [], exile, willPower: 1 });
-  const msg = '💀 LAST BREATH: Exile your entire yard — WP set to 1. Desperate times!';
+  const msg = 'LAST BREATH: Exile your entire yard — WP set to 1. Desperate times!';
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return next;
@@ -1637,7 +1637,7 @@ export function sacAncientAndLandscapes(
   });
   next = drawCards(next, uid, 3);
   // Signal discard-1 via popup — actual discard handled in UI
-  const msg = '🌟 ANCIENT SACRIFICE: Drew 3 cards. You must discard 1 card.';
+  const msg = 'ANCIENT SACRIFICE: Drew 3 cards. You must discard 1 card.';
   next = addLog(next, msg);
   next = { ...next, pendingRitualPopup: msg };
   return next;

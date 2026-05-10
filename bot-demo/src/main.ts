@@ -48,7 +48,7 @@ function buildWillowWidget(): string {
       font-family:'Share Tech Mono',monospace;
     ">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-size:20px">🌿</span>
+        <span style="font-size:20px"></span>
         <span style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--gold);letter-spacing:1px">WILLOW AI</span>
         ${statusDot}
       </div>
@@ -94,9 +94,9 @@ function buildWillowWidget(): string {
       </div>
 
       <div style="display:flex;gap:8px;margin-top:14px">
-        <button id="btn-w-import" class="btn-gold" style="flex:1;padding:8px;font-size:11px">⬆ Load</button>
-        <button id="btn-w-export" class="btn-gold" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>⬇ Save</button>
-        <button id="btn-w-reset" class="btn-danger" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>✕</button>
+        <button id="btn-w-import" class="btn-gold" style="flex:1;padding:8px;font-size:11px">Load</button>
+        <button id="btn-w-export" class="btn-gold" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>Save</button>
+        <button id="btn-w-reset" class="btn-danger" style="flex:1;padding:8px;font-size:11px" ${!hasModel ? 'disabled' : ''}>Reset</button>
       </div>
     </div>
   `;

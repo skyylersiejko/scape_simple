@@ -46,7 +46,7 @@ class About extends React.Component {
              Instead of having a prerelease weekend for new cards; we will have release events for new Rituals.
              we see Ritual based gameplay as the next evolution of competitive card games. 
              The Scape engine is more focused on competition gameplay and is built to support a tournament enviroment.
-             We hope to release a digital version of the game soon.
+             
 
 
         </div>
@@ -59,10 +59,10 @@ With a new type of game comes a new way of playing and practicing. You can even 
 giving you a unique experience every time. Don't forget you can change the aggressiveness of your Willow to make it more or less challenging. Good luck!
         </div>
 
-  <div className={"Heading"}>Available</div>
-        <div className={"Text"}>
-              Windows, MacOs, and Browser. 
-
+  <div style={{display:"block", textAlign:"center", fontSize:"12px", color:"rgba(214, 195, 73)", marginTop:"10px"}}>Scape is currently available on PC, MacOs, and Web</div>
+        <div className={""}>
+              <img alt={"scape_logo"} src={require("../../res/app_logo.png")} style={{width:"256px", display:"block", margin:"auto"}} />
+             
         </div>
 
         <div style = {{color: "white", fontStyle:"italic", fontWeight: "bold", fontSize:"12px", textAlign:"center", padding:"20px 0", maxWidth:"100%", margin:"0 auto"  }}>"I liked the core engine of Magic, but was tired of seeing the massive amount of capitalism canabalise the games integrity."</div>
