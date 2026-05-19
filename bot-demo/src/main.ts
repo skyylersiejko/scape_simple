@@ -169,6 +169,7 @@ function showStartScreen(): void {
         border:2px solid var(--gold,#ffd700);
         cursor:pointer;
       ">Start</button>
+      <div style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:'Press Start 2P',monospace;font-size:7px;color:rgba(255,255,255,0.35);letter-spacing:1px;">v1.2.1</div>
     </div>
   `;
   document.getElementById('btn-play')!.addEventListener('click', startGame);

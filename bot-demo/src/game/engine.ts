@@ -794,7 +794,9 @@ function resolveCombat(state: GameState, mode: 'additive' | 'multiplicative' = '
   newAtkBattlefield = newAtkBattlefield.map(c => {
     if (atkPs.attackers.includes(c.id)) {
       const def = CARD_DEFS[c.defId];
-      if (!def?.isFlyer) return { ...c, exhausted: true };
+      // Flyers never exhaust from attacking — explicitly keep them unexhausted
+      if (def?.isFlyer) return { ...c, exhausted: false };
+      return { ...c, exhausted: true };
     }
     return c;
   });

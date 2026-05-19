@@ -1105,6 +1105,10 @@ export class BotGameScreen {
       ? 'The starting player skips their first draw — your opening hand is your draw.'
       : 'You will draw a card at the start of your first turn.';
 
+    // Show player's opening hand
+    const openingHand = getPlayerState(this.gameState, this.currentUser.uid).hand;
+    const handCardsHtml = openingHand.map(c => this.buildCardEl(c, false, false)).join('');
+
     this.container.innerHTML = `
       <div class="ancient-selection-screen">
         <div class="ancient-selection-header">
@@ -1117,20 +1121,23 @@ export class BotGameScreen {
         <div style="
           margin-top:28px;text-align:center;
           background:var(--bg2);border:2px solid var(--gold);
-          padding:18px 28px;max-width:480px;
+          padding:18px 28px;max-width:560px;
           box-shadow:3px 3px 0 #3d2a00,0 0 18px #ffd70033;
         ">
-          <div style="font-family:'Press Start 2P',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:10px">
-            WHO GOES FIRST
-          </div>
-          <div style="font-size:15px;color:var(--text);margin-bottom:6px">
+          <div style="font-size:20px;color:var(--text);margin-bottom:10px">
             ${playerGoesFirst
               ? '<span style="color:var(--green)">You</span> go first!'
               : '<span style="color:var(--red)">Willow AI</span> goes first.'}
           </div>
-          <div style="font-size:11px;color:var(--text-dim);line-height:1.6">${firstTurnNote}</div>
-          <div style="font-size:11px;color:var(--text-dim);margin-top:10px;color:var(--purple-bright)">
+          <div style="font-size:15px;color:var(--text-dim);line-height:1.6">${firstTurnNote}</div>
+          <div style="font-size:15px;color:var(--purple-bright);margin-top:12px">
             ↑ Select your Ancient above to begin
+          </div>
+        </div>
+        <div style="margin-top:28px;text-align:center">
+          <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--purple-bright);letter-spacing:1px;margin-bottom:12px">YOUR OPENING HAND</div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            ${handCardsHtml}
           </div>
         </div>
       </div>
@@ -1174,6 +1181,8 @@ export class BotGameScreen {
     const playerTurnCount = isP1 ? gs.p1TurnCount : gs.p2TurnCount;
     const maxLand = Math.min(playerTurnCount, 3);
     const landThisTurn = isP1 ? gs.p1LandscapesThisTurn : gs.p2LandscapesThisTurn;
+    const myFoiCount = isP1 ? gs.p1FieldOfImaginationSacCount : gs.p2FieldOfImaginationSacCount;
+    const oppFoiCount = isP1 ? gs.p2FieldOfImaginationSacCount : gs.p1FieldOfImaginationSacCount;
 
     const orderedHand = this.handOrder
       .filter(id => ps.hand.some(c => c.id === id))
@@ -1243,6 +1252,10 @@ export class BotGameScreen {
             <div class="ancient-col">
               ${opp.ancient ? this.buildCardEl(opp.ancient, false, true) : this.buildEmptyAncient()}
               <div class="zone-label">ANCIENT</div>
+              ${(oppFoiCount > 0 || opp.ancient?.defId === 'field_of_imagination') ? `
+                <div style="font-family:'Press Start 2P',monospace;font-size:8px;text-align:center;background:rgba(168,85,247,0.15);border:1px solid var(--purple-bright);padding:3px 6px;margin-top:2px;color:${oppFoiCount >= 4 ? 'var(--red)' : 'var(--purple-bright)'}">
+                  FOI: ${oppFoiCount}/5${oppFoiCount >= 5 ? ' ★WIN' : ''}
+                </div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;flex:1;gap:3px;min-width:0;">
               <div class="landscape-col">
@@ -1304,6 +1317,10 @@ export class BotGameScreen {
               <div class="zone-label">ANCIENT</div>
               ${isMyTurn && ps.ancient && !ps.ancient.exhausted ? '<span style="font-size:7px;color:var(--gold)">(dbl-click · right-click sac)</span>' : ''}
               ${!ps.ancient ? '<div style="font-size:11px;color:var(--text-dim)">SACRIFICED</div>' : ''}
+              ${(myFoiCount > 0 || ps.ancient?.defId === 'field_of_imagination') ? `
+                <div style="font-family:'Press Start 2P',monospace;font-size:8px;text-align:center;background:rgba(255,215,0,0.12);border:1px solid var(--gold);padding:3px 6px;margin-top:2px;color:${myFoiCount >= 4 ? 'var(--red)' : 'var(--gold)'}">
+                  FOI: ${myFoiCount}/5${myFoiCount >= 5 ? ' ★WIN' : ''}
+                </div>` : ''}
             </div>
 
             <!-- Center: Beings + Landscape stacked -->
@@ -2061,12 +2078,19 @@ export class BotGameScreen {
     svg.setAttribute('style', 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:150');
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
-    // Helper to get center of a card element
+    // The body has a CSS transform (scale). getBoundingClientRect() returns viewport
+    // coordinates, but position:fixed SVG inside a transformed element uses the
+    // element's local coordinate space. Divide by the body's scale to convert.
+    const bodyScale = document.body.offsetWidth > 0
+      ? document.body.getBoundingClientRect().width / document.body.offsetWidth
+      : 1;
+
+    // Helper to get center of a card element in SVG-local coordinates
     const getCenter = (cardId: string): { x: number; y: number } | null => {
       const el = this.container.querySelector<HTMLElement>(`[data-id="${cardId}"]`);
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      return { x: (r.left + r.width / 2) / bodyScale, y: (r.top + r.height / 2) / bodyScale };
     };
 
     const BLOCK_COLOR = '#00ffff';
@@ -2090,12 +2114,16 @@ export class BotGameScreen {
     // Draw drag line from selected blocker to mouse cursor (player block step only)
     if (isPlayerBlockStep && this.selectedCard && ps.battlefield.some(c => c.id === this.selectedCard)) {
       const from = getCenter(this.selectedCard);
-      if (from && this.blockDragPos) {
-        svg.appendChild(makeLine(from.x, from.y, this.blockDragPos.x, this.blockDragPos.y, '6,4'));
+      // Convert raw viewport mouse coords to SVG-local coords
+      const dragPos = this.blockDragPos
+        ? { x: this.blockDragPos.x / bodyScale, y: this.blockDragPos.y / bodyScale }
+        : null;
+      if (from && dragPos) {
+        svg.appendChild(makeLine(from.x, from.y, dragPos.x, dragPos.y, '6,4'));
         // Arrowhead circle at mouse
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', String(this.blockDragPos.x));
-        circle.setAttribute('cy', String(this.blockDragPos.y));
+        circle.setAttribute('cx', String(dragPos.x));
+        circle.setAttribute('cy', String(dragPos.y));
         circle.setAttribute('r', DRAG_CIRCLE_RADIUS);
         circle.setAttribute('fill', BLOCK_COLOR);
         circle.setAttribute('opacity', '0.7');
