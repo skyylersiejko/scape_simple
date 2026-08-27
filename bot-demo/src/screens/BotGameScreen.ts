@@ -8,11 +8,39 @@ import {
   addSpellToRitualZone, resolveRitualTarget, getPartialRitualMatches,
   isCardValidForRitualZone,
   cultivate, study, evolve, nourish, lastBreath, sacAncientAndLandscapes,
-  chooseCombatDamageMode
+  chooseCombatDamageMode,
+  beginPriorityWindow, recordPriorityPass, resetPriority
 } from '../game/engine';
 import { WillowAI } from '../game/ai';
 const BOT_SP_REWARD = 10;
 const BOT_WIN_LIMIT = 3;
+
+// ── Timing ───────────────────────────────────────────────────────────────────
+/** How long the player gets to act while holding priority. */
+const PLAYER_PRIORITY_MS = 30000;
+/** How long the player gets to declare blockers. */
+const PLAYER_BLOCK_MS = 30000;
+/** How long the bot "thinks" before responding to or passing on a priority window. */
+const BOT_RESPONSE_MS = 1200;
+/** How long the bot holds priority before auto-passing it back on an empty stack. */
+const BOT_AUTO_PASS_MS = 1500;
+/** Auto-advance delay for the mechanical replenish / draw steps. */
+const EARLY_PHASE_AUTO_MS = 1000;
+/** Watchdog interval for the "bot is stuck holding priority" safety net. */
+const SANITY_CHECK_MS = 3000;
+
+/** What ended a wait for the player during a priority window. */
+type PlayerWaitOutcome = 'passed' | 'acted' | 'timeout';
+/** Which kind of wait is in progress — drives the label on the countdown. */
+type PlayerWaitKind = 'stack' | 'predamage' | 'blocks';
+
+/**
+ * Append a UI-side line to the game log. Mirrors the engine's own private `addLog`
+ * cap so the log cannot grow without bound.
+ */
+function addScreenLog(gs: GameState, msg: string): GameState {
+  return { ...gs, log: [...(gs.log || []).slice(-49), msg] };
+}
 
 const BOT_UID = 'bot_opponent';
 const BOT_USER: User = {
@@ -42,14 +70,33 @@ export class BotGameScreen {
   // SP award tracking (bot wins)
   private spAwarded = false;
 
-  // Priority state
-  private priorityPromiseResolve: ((gs: GameState) => void) | null = null;
-  private priorityTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  // ── Priority state ────────────────────────────────────────────────────────
+  // Exactly one wait for the player can be outstanding at a time. `playerWait`
+  // holds its resolver; `settlePlayerWait` is the only way it completes, so a pass,
+  // a response and a timeout can never all fire against the same window.
+  private playerWait: {
+    kind: PlayerWaitKind;
+    resolve: (o: PlayerWaitOutcome) => void;
+    /** Absolute deadline while the clock is running. */
+    deadlineMs: number;
+    /** Time banked by a pause; null while the clock is running. */
+    frozenMs: number | null;
+  } | null = null;
+  private playerWaitTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private waitingOnPlayer = false;  // bot is waiting for player to pass priority
+  // Guard so only one stack-priority loop drives the stack at a time.
+  private stackLoopRunning = false;
+  // Set by destroy(); halts every loop so an abandoned screen stops acting.
+  private destroyed = false;
 
   // Player inactivity auto-pass timer
   private playerInactivityTimerId: ReturnType<typeof setTimeout> | null = null;
   private botAutoPassScheduled = false;
+
+  // Every setTimeout this screen schedules is registered here so `destroy()` can
+  // cancel all of them. Previously several were fire-and-forget and kept firing
+  // against a screen the player had already left.
+  private pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
 
   // Bot priority sanity-check watchdog: periodically ensures the bot isn't stuck
   private botSanityTimerId: ReturnType<typeof setInterval> | null = null;
@@ -70,8 +117,10 @@ export class BotGameScreen {
   // Ritual popup dismiss timer
   private ritualPopupTimerId: ReturnType<typeof setTimeout> | null = null;
 
-  // Priority countdown timer
+  // Priority countdown timer. `priorityTimerOwner` is what the clock is waiting on,
+  // so the player can see whose clock is running instead of an unlabelled number.
   private priorityTimerEndMs: number | null = null;
+  private priorityTimerOwner: 'you' | 'bot' | 'blocks' | null = null;
   private priorityCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
   // Turn popup state
@@ -109,22 +158,26 @@ export class BotGameScreen {
 
     // Spacebar passes priority (or dismisses turn popup)
     this.spacebarHandler = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !e.repeat) {
-        e.preventDefault();
-        if (this.turnPopupVisible) {
-          this.dismissTurnPopup();
-          return;
-        }
-        if (!this.botRunning || this.waitingOnPlayer) {
-          this.handlePassPriority();
-        }
+      if (e.code !== 'Space' || e.repeat) return;
+      e.preventDefault();
+      if (this.turnPopupVisible) {
+        this.dismissTurnPopup();
+        return;
+      }
+      // A paused game and an open modal both mean the player is not looking at the
+      // board; passing priority from under them was how the target picker ended up
+      // confirming into a state that had already moved on.
+      if (this.isHalted()) return;
+      if (this.hasOpenModal()) return;
+      if (!this.botRunning || this.waitingOnPlayer) {
+        this.handlePassPriority();
       }
     };
     document.addEventListener('keydown', this.spacebarHandler);
 
-    // Bot priority sanity-check watchdog: every 3 seconds, verify that if the bot
-    // holds priority an action timer is actually running. If not, kick-start one.
-    this.botSanityTimerId = setInterval(() => this.botPrioritySanityCheck(), 3000);
+    // Bot priority sanity-check watchdog: periodically verify that if the bot holds
+    // priority something is actually driving it. If not, kick-start the right flow.
+    this.botSanityTimerId = setInterval(() => this.botPrioritySanityCheck(), SANITY_CHECK_MS);
 
     this.render();
   }
@@ -153,15 +206,13 @@ export class BotGameScreen {
     // Clear player inactivity timer on every state change (action resets it)
     this.clearPlayerInactivityTimer();
 
-    // If bot was waiting for player priority and the player just took a priority action
-    // (e.g. used their ancient, which passes priority to bot), auto-resolve so the bot can continue.
-    // We intentionally compare the OLD state (this.gameState) to the NEW state (newState) to detect
-    // the moment the player's priority was transferred away as a result of their action.
-    if (this.waitingOnPlayer &&
-        this.gameState.priorityPlayer === myUid &&
-        newState.priorityPlayer !== myUid) {
-      setTimeout(() => this.resolvePlayerPriority(), 500);
-    }
+    // If a priority window was open for the player and their action handed priority
+    // away (they responded on the stack, or used their ancient), the window is over:
+    // report it as 'acted' so the driving loop gives the *bot* its response window
+    // rather than resolving immediately.
+    const playerReleasedPriority = this.waitingOnPlayer
+      && this.gameState.priorityPlayer === myUid
+      && newState.priorityPlayer !== myUid;
 
     // Detect turn change — show popup
     const turnChanged = this.gameState.currentTurn !== newState.currentTurn;
@@ -170,7 +221,12 @@ export class BotGameScreen {
     const wasNotOver = !this.gameState.winner;
 
     this.gameState = newState;
+    // Settle BEFORE rendering: settling clears `waitingOnPlayer`, and rendering first
+    // would paint the player's "Pass Priority" button for a window they have already
+    // given up. The awaiting loop resumes on a microtask, i.e. after this render.
+    if (playerReleasedPriority) this.settlePlayerWait('acted');
     this.render();
+    this.updateTimerDisplay();
 
     // Notify Willow of player actions (detect cards leaving player's hand)
     this.willowDetectPlayerActions(myUid, newState);
@@ -185,6 +241,7 @@ export class BotGameScreen {
         newState.currentTurn === myUid && !newState.winner) {
       this.breakpointHitPhase = newState.phase;
       this.clearPlayerInactivityTimer();
+      this.haltPlayerWaitClock();
       this.clearPriorityCountdown();
       this.render();
     }
@@ -201,24 +258,36 @@ export class BotGameScreen {
       this.showTurnPopupFor(newState);
     }
 
-    if (!this.botRunning && !this.waitingOnPlayer) {
-      this.maybeBotTurn();
-    }
-
-    if (newState.winner) return;
-
-    // If player's combat blocks step: trigger bot blocking
-    if (!this.botRunning && !this.waitingOnPlayer &&
-        newState.currentTurn === myUid &&
-        newState.phase === 'combat' && newState.combatStep === 'blocks') {
-      this.botDeclareBlockersAndAdvance();
+    if (newState.winner) {
+      this.settlePlayerWait('acted');
+      this.clearPriorityCountdown();
       return;
     }
 
-    // If bot has priority during player's turn (e.g., after ancient use), auto-pass back.
-    // Only applies when the stack is empty — stack responses are handled exclusively by
-    // triggerBotStackResponse to prevent a race that corrupts stackPassedOnce.
-    if (!this.botRunning && !this.waitingOnPlayer &&
+    if (!this.botRunning && !this.waitingOnPlayer && !this.stackLoopRunning) {
+      this.maybeBotTurn();
+    }
+
+    // Anything on the stack is driven by the one stack-priority loop, on either
+    // turn. The loop is idempotent, so calling it here is the only entry point
+    // needed — this replaces the two separate schedulers that used to race.
+    if (newState.stack.length > 0 && !this.stackLoopRunning &&
+        !this.botRunning && !this.waitingOnPlayer) {
+      void this.driveStackPriority();
+      return;
+    }
+
+    // If player's combat blocks step: trigger bot blocking
+    if (!this.botRunning && !this.waitingOnPlayer && !this.stackLoopRunning &&
+        newState.currentTurn === myUid &&
+        newState.phase === 'combat' && newState.combatStep === 'blocks') {
+      void this.botDeclareBlockersAndAdvance();
+      return;
+    }
+
+    // Bot briefly holds priority during the player's turn (e.g. after ancient use)
+    // with nothing on the stack — hand it back after a beat.
+    if (!this.botRunning && !this.waitingOnPlayer && !this.stackLoopRunning &&
         newState.currentTurn === myUid &&
         newState.priorityPlayer !== myUid &&
         newState.combatStep !== 'blocks' &&
@@ -227,24 +296,48 @@ export class BotGameScreen {
       return;
     }
 
-    // If bot has priority during player's turn with items on the stack,
-    // trigger the bot stack response so the bot doesn't freeze.
-    // This handles cases like the player using an ancient after playing a being
-    // (which transfers priority to the bot while the being is still on the stack).
-    if (!this.botRunning && !this.waitingOnPlayer &&
-        newState.currentTurn === myUid &&
-        newState.priorityPlayer !== myUid &&
-        newState.stack.length > 0) {
-      this.triggerBotStackResponse();
-      return;
-    }
-
     // Start turn timer when player has priority on their own turn
     // (handles both auto-advance for replenish/draw and 30s inactivity for other phases)
-    if (newState.currentTurn === myUid && newState.priorityPlayer === myUid &&
-        !this.waitingOnPlayer) {
-      this.startPlayerInactivityTimer();
+    this.startPlayerInactivityTimer();
+  }
+
+  /**
+   * Re-arm whichever priority window was live after a pause or breakpoint ends.
+   * The bot and stack loops resume on their own (they park on `isHalted()`); this
+   * only has to restore the player-side clock and restart the loop if nothing is
+   * driving a stack that is still sitting there.
+   */
+  private resumeAfterHalt(): void {
+    if (this.isHalted() || this.gameState.winner) return;
+
+    // A window that was open when we halted just picks up where it left off.
+    if (this.playerWait) {
+      this.resumePlayerWaitClock();
+      this.render();
+      return;
     }
+    if (this.gameState.stack.length > 0 && !this.stackLoopRunning
+        && !this.botRunning && !this.waitingOnPlayer) {
+      void this.driveStackPriority();
+      return;
+    }
+    // Bot was left holding priority on an empty stack during the player's turn.
+    const gs = this.gameState;
+    if (!this.botRunning && !this.stackLoopRunning
+        && gs.currentTurn === this.currentUser.uid && gs.priorityPlayer !== this.currentUser.uid) {
+      this.botAutoPassPriority();
+      return;
+    }
+    this.startPlayerInactivityTimer();
+  }
+
+  /** True when any blocking modal/overlay is currently on screen. */
+  private hasOpenModal(): boolean {
+    return !!this.container.querySelector('.overlay')
+      || this.showBreakpointPicker
+      || this.breakpointHitPhase !== null
+      || this.showRitualModal
+      || this.showSettings;
   }
 
   private showRitualPopupToast(msg: string): void {
@@ -262,9 +355,9 @@ export class BotGameScreen {
     `;
     this.container.appendChild(popup);
 
-    this.ritualPopupTimerId = setTimeout(() => {
+    this.ritualPopupTimerId = this.later(() => {
       popup.classList.add('ritual-toast-fade');
-      setTimeout(() => popup.remove(), 600);
+      this.later(() => popup.remove(), 600);
       this.ritualPopupTimerId = null;
     }, 3500);
   }
@@ -284,7 +377,7 @@ export class BotGameScreen {
     this.turnPopupVisible = true;
     this.turnPopupIsMyTurn = gs.currentTurn === myUid;
     this.render();
-    this.turnPopupTimerId = setTimeout(() => {
+    this.turnPopupTimerId = this.later(() => {
       this.dismissTurnPopup();
     }, 3000);
   }
@@ -325,110 +418,331 @@ export class BotGameScreen {
     if (this.gameState.winner) return;
     if (this.botRunning) return;
     this.botRunning = true;
-    setTimeout(() => this.runBotTurnAsync(), 600);
+    this.later(() => this.runBotTurnAsync(), 600);
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => { this.later(resolve, ms); });
   }
 
-  private waitForPlayerPriority(timeoutMs = 30000): Promise<GameState> {
-    return new Promise((resolve) => {
+  // ── Timeout bookkeeping ────────────────────────────────────────────────────
+
+  /**
+   * `setTimeout` that registers itself so `destroy()` can cancel it. Every deferred
+   * action in this screen goes through here; otherwise a screen the player has left
+   * keeps mutating state behind a new game.
+   */
+  private later(fn: () => void, ms: number): ReturnType<typeof setTimeout> {
+    const id = setTimeout(() => {
+      this.pendingTimeouts.delete(id);
+      fn();
+    }, ms);
+    this.pendingTimeouts.add(id);
+    return id;
+  }
+
+  private clearLater(id: ReturnType<typeof setTimeout> | null): void {
+    if (id === null) return;
+    clearTimeout(id);
+    this.pendingTimeouts.delete(id);
+  }
+
+  private clearAllTimeouts(): void {
+    for (const id of this.pendingTimeouts) clearTimeout(id);
+    this.pendingTimeouts.clear();
+  }
+
+  // ── Halting (pause / phase breakpoint) ─────────────────────────────────────
+
+  /** True while the game is deliberately stopped and nothing should act. */
+  private isHalted(): boolean {
+    return this.destroyed || this.gamePaused || this.breakpointHitPhase !== null;
+  }
+
+  /**
+   * Park until the game is un-halted. Pause and phase breakpoints previously stopped
+   * only the player's inactivity timer, so the bot kept playing through them.
+   * Returns immediately once the screen is destroyed so loops can unwind.
+   */
+  private async awaitUnhalted(): Promise<void> {
+    while (this.isHalted() && !this.destroyed && !this.gameState.winner) {
+      await this.delay(250);
+    }
+  }
+
+  // ── State commit ───────────────────────────────────────────────────────────
+
+  /**
+   * Assign game state from a priority/bot path and refresh the view.
+   *
+   * Unlike `setState` this does not re-enter the bot/priority scheduling — the
+   * caller is already inside that flow. It exists so no priority path can leave a
+   * stale action bar or a stale clock behind, which is what happened when these
+   * paths did `this.gameState = …; this.render();` by hand.
+   */
+  private commit(gs: GameState): void {
+    this.gameState = gs;
+    this.render();
+    this.updateTimerDisplay();
+  }
+
+  /**
+   * Record that `uid` passed priority in the current window and show the result.
+   * Returns true when this pass closed the window (both players have now passed).
+   */
+  private passPriorityFor(uid: string): boolean {
+    const { state, bothPassed } = recordPriorityPass(this.gameState, uid);
+    this.commit(state);
+    return bothPassed;
+  }
+
+  // ── Waiting on the player ──────────────────────────────────────────────────
+
+  /**
+   * Hand the player a priority window and wait for them to close it. Resolves with
+   * 'passed' when they pass, 'acted' when they instead respond (which opens a new
+   * window for the bot), or 'timeout' when the clock runs out.
+   */
+  private awaitPlayerWait(kind: PlayerWaitKind, timeoutMs: number): Promise<PlayerWaitOutcome> {
+    // Never leave an earlier wait dangling.
+    this.settlePlayerWait('acted');
+    return new Promise<PlayerWaitOutcome>((resolve) => {
       this.waitingOnPlayer = true;
-      this.priorityPromiseResolve = (gs: GameState) => {
-        this.waitingOnPlayer = false;
-        resolve(gs);
-      };
-      this.startPriorityCountdown(timeoutMs);
-      this.priorityTimeoutId = setTimeout(() => {
-        if (this.priorityPromiseResolve) {
-          this.clearPriorityCountdown();
-          const cb = this.priorityPromiseResolve;
-          this.priorityPromiseResolve = null;
-          this.waitingOnPlayer = false;
-          cb(this.gameState);
-        }
-      }, timeoutMs);
-      this.render(); // show priority UI
+      this.playerWait = { kind, resolve, deadlineMs: Date.now() + timeoutMs, frozenMs: null };
+      this.startPriorityCountdown(timeoutMs, kind === 'blocks' ? 'blocks' : 'you');
+      this.playerWaitTimeoutId = this.later(() => this.settlePlayerWait('timeout'), timeoutMs);
+      this.render();
     });
   }
 
-  private resolvePlayerPriority(): void {
-    if (this.priorityPromiseResolve) {
-      if (this.priorityTimeoutId !== null) {
-        clearTimeout(this.priorityTimeoutId);
-        this.priorityTimeoutId = null;
+  /** The single exit for a player wait — idempotent, so a late timer is harmless. */
+  private settlePlayerWait(outcome: PlayerWaitOutcome): void {
+    const wait = this.playerWait;
+    if (!wait) return;
+    this.playerWait = null;
+    this.clearLater(this.playerWaitTimeoutId);
+    this.playerWaitTimeoutId = null;
+    this.clearPriorityCountdown();
+    this.waitingOnPlayer = false;
+    wait.resolve(outcome);
+  }
+
+  /** True when a wait of this kind is currently outstanding. */
+  private isWaitingFor(kind: PlayerWaitKind): boolean {
+    return this.playerWait?.kind === kind;
+  }
+
+  /**
+   * Freeze an open player wait. Pause used to clear only the visible countdown, so a
+   * 30s window still timed out — and auto-passed — while the game sat paused.
+   */
+  private haltPlayerWaitClock(): void {
+    const wait = this.playerWait;
+    if (!wait || this.playerWaitTimeoutId === null) return;
+    // Bank what is left; resume re-arms with exactly that.
+    wait.frozenMs = Math.max(0, wait.deadlineMs - Date.now());
+    this.clearLater(this.playerWaitTimeoutId);
+    this.playerWaitTimeoutId = null;
+    this.clearPriorityCountdown();
+  }
+
+  /** Restore a frozen player wait with the time it had left. */
+  private resumePlayerWaitClock(): void {
+    const wait = this.playerWait;
+    if (!wait || this.playerWaitTimeoutId !== null) return;
+    // Always give at least a second back, so resuming never instantly times out.
+    const remaining = Math.max(1000, wait.frozenMs ?? (wait.deadlineMs - Date.now()));
+    wait.frozenMs = null;
+    wait.deadlineMs = Date.now() + remaining;
+    this.startPriorityCountdown(remaining, wait.kind === 'blocks' ? 'blocks' : 'you');
+    this.playerWaitTimeoutId = this.later(() => this.settlePlayerWait('timeout'), remaining);
+  }
+
+  // ── Stack priority ─────────────────────────────────────────────────────────
+
+  /**
+   * Drive priority over a non-empty stack until it resolves.
+   *
+   * This is the single implementation for both turns. Previously the player's turn
+   * used an event-driven tracker while the bot's turn awaited one player pass and
+   * then resolved the whole stack unconditionally — so the bot never got a response
+   * window on its own turn, and two different code paths could record passes for
+   * the same window.
+   *
+   * Whoever holds priority acts or passes; a response opens a fresh window for the
+   * opponent; the stack resolves only once both players have passed in succession.
+   */
+  private async driveStackPriority(): Promise<void> {
+    if (this.stackLoopRunning) return;
+    this.stackLoopRunning = true;
+    this.render();
+    try {
+      // Bounded so a logic error degrades into "stack resolves" rather than a hang.
+      for (let guard = 0; guard < 64; guard++) {
+        await this.awaitUnhalted();
+        if (this.destroyed) break;
+        const gs = this.gameState;
+        if (gs.winner || gs.stack.length === 0) break;
+
+        if (gs.priorityPlayer === BOT_UID) {
+          this.startPriorityCountdown(BOT_RESPONSE_MS, 'bot');
+          await this.delay(BOT_RESPONSE_MS);
+          this.clearPriorityCountdown();
+          // The game may have been paused during the think delay.
+          if (this.isHalted()) continue;
+          if (this.gameState.winner) break;
+          if (this.gameState.priorityPlayer !== BOT_UID || this.gameState.stack.length === 0) continue;
+          // A response puts a card on the stack, which opens a new window for the
+          // player — so loop rather than recording a pass.
+          if (this.botTryRespond()) continue;
+          if (this.passPriorityFor(BOT_UID)) this.setState(resolveEntireStack(this.gameState));
+          continue;
+        }
+
+        const outcome = await this.awaitPlayerWait('stack', PLAYER_PRIORITY_MS);
+        if (this.gameState.winner) break;
+        if (outcome === 'acted') continue;   // player responded; bot now holds priority
+        if (outcome === 'timeout') {
+          this.commit(addScreenLog(this.gameState, 'Priority timed out — auto-passed.'));
+        }
+        if (this.gameState.priorityPlayer !== this.currentUser.uid) continue;
+        if (this.passPriorityFor(this.currentUser.uid)) this.setState(resolveEntireStack(this.gameState));
       }
+    } catch (e) {
+      console.warn('Stack priority error:', e);
+    } finally {
+      this.stackLoopRunning = false;
+      this.settlePlayerWait('acted');
       this.clearPriorityCountdown();
-      const cb = this.priorityPromiseResolve;
-      this.priorityPromiseResolve = null;
-      this.waitingOnPlayer = false;
-      cb(this.gameState);
+      this.render();
+      this.startPlayerInactivityTimer();
     }
   }
 
-  // Start player turn timer — 1s auto-advance for replenish/draw, 30s inactivity for other phases
+  /**
+   * Run the pre-damage priority window: the active player passes, then the defender,
+   * and only then does combat damage resolve. A spell cast during the window opens a
+   * stack window first and the gate restarts, because the board may have changed.
+   */
+  private async runPreDamageGate(): Promise<GameState> {
+    const myUid = this.currentUser.uid;
+    for (let guard = 0; guard < 16; guard++) {
+      await this.awaitUnhalted();
+      if (this.destroyed) return this.gameState;
+      let gs = this.gameState;
+      if (gs.winner || gs.combatStep !== 'pre-damage' || gs.pendingDamageChoice) return gs;
+
+      if (gs.stack.length > 0) {
+        await this.driveStackPriority();
+        // The stack window reset priority, so the gate starts over.
+        this.commit(beginPriorityWindow(this.gameState, this.gameState.currentTurn));
+        continue;
+      }
+
+      if (gs.priorityPlayer === BOT_UID) {
+        this.startPriorityCountdown(BOT_RESPONSE_MS, 'bot');
+        await this.delay(BOT_RESPONSE_MS);
+        this.clearPriorityCountdown();
+        if (this.isHalted()) continue;
+        gs = this.gameState;
+        if (gs.winner || gs.combatStep !== 'pre-damage' || gs.stack.length > 0) continue;
+        if (this.passPriorityFor(BOT_UID)) {
+          this.commit(advancePhase(this.gameState, this.gameState.currentTurn));
+          return this.gameState;
+        }
+        continue;
+      }
+
+      const outcome = await this.awaitPlayerWait('predamage', PLAYER_PRIORITY_MS);
+      gs = this.gameState;
+      if (gs.winner) return gs;
+      if (outcome === 'acted') continue;
+      if (gs.combatStep !== 'pre-damage' || gs.stack.length > 0) continue;
+      if (gs.priorityPlayer !== myUid) continue;
+      if (this.passPriorityFor(myUid)) {
+        this.commit(advancePhase(this.gameState, this.gameState.currentTurn));
+        return this.gameState;
+      }
+    }
+    return this.gameState;
+  }
+
+  // ── Player turn timer ──────────────────────────────────────────────────────
+
+  /**
+   * Start the player's own clock: a short auto-advance through the mechanical
+   * replenish / draw steps, otherwise the 30s inactivity window.
+   *
+   * Safe to call unconditionally — it clears any previous clock and returns without
+   * arming one when it is not the player's window to hold.
+   */
   private startPlayerInactivityTimer(): void {
     this.clearPlayerInactivityTimer();
-    if (this.gameState.winner) return;
-    if (this.gamePaused || this.breakpointHitPhase) return;
     const gs = this.gameState;
     const myUid = this.currentUser.uid;
-    const isEarlyPhase = (gs.phase === 'replenish' || gs.phase === 'draw') && gs.currentTurn === myUid;
+    if (gs.winner) return;
+    if (this.isHalted()) return;
+    if (this.waitingOnPlayer || this.botRunning || this.stackLoopRunning) return;
+    if (gs.currentTurn !== myUid || gs.priorityPlayer !== myUid) return;
+
+    const isEarlyPhase = gs.phase === 'replenish' || gs.phase === 'draw';
 
     if (isEarlyPhase) {
-      // Auto-advance replenish/draw after 1 second
-      this.playerInactivityTimerId = setTimeout(() => {
+      // Auto-advance the mechanical steps.
+      this.playerInactivityTimerId = this.later(() => {
         this.playerInactivityTimerId = null;
         const curGs = this.gameState;
         if (curGs.currentTurn !== myUid || curGs.winner) return;
-        if (this.gamePaused || this.breakpointHitPhase) return;
+        if (this.isHalted()) return;
         const next = advancePhase(curGs, myUid);
         if (next !== curGs) this.setState(next);
-      }, 1000);
-    } else {
-      // Normal 30s inactivity timer
-      this.startPriorityCountdown(30000);
-      this.playerInactivityTimerId = setTimeout(() => {
-        this.playerInactivityTimerId = null;
-        this.clearPriorityCountdown();
-        const curGs = this.gameState;
-        if (curGs.currentTurn !== myUid || curGs.winner) return;
-        if (curGs.priorityPlayer !== myUid || this.waitingOnPlayer || this.botRunning) return;
-        if (this.gamePaused || this.breakpointHitPhase) return;
-        // Auto-advance phase after 30s of inactivity
-        const next = advancePhase(curGs, myUid);
-        if (next !== curGs) {
-          this.setState(next);
-        } else if (curGs.pendingDamageChoice && curGs.currentTurn === myUid) {
-          // Auto-resolve pending unblocked damage choice to additive on timeout
-          const resolved = chooseCombatDamageMode(curGs, myUid, 'additive');
-          if (resolved !== curGs) this.setState(resolved);
-        }
-      }, 30000);
+      }, EARLY_PHASE_AUTO_MS);
+      return;
     }
+
+    this.startPriorityCountdown(PLAYER_PRIORITY_MS, 'you');
+    this.playerInactivityTimerId = this.later(() => {
+      this.playerInactivityTimerId = null;
+      this.clearPriorityCountdown();
+      const curGs = this.gameState;
+      if (curGs.currentTurn !== myUid || curGs.winner) return;
+      if (curGs.priorityPlayer !== myUid || this.waitingOnPlayer || this.botRunning) return;
+      if (this.isHalted()) return;
+
+      // A pending damage choice is a decision, not a phase — resolve it, don't skip it.
+      if (curGs.pendingDamageChoice) {
+        const resolved = chooseCombatDamageMode(curGs, myUid, 'additive');
+        if (resolved !== curGs) this.setState(resolved);
+        return;
+      }
+
+      // With cards on the stack, timing out means passing priority — not skipping the
+      // phase, which would resolve the stack without giving the bot its window.
+      if (curGs.stack.length > 0) {
+        this.handlePassPriority();
+        return;
+      }
+
+      const next = advancePhase(curGs, myUid);
+      if (next !== curGs) this.setState(next);
+    }, PLAYER_PRIORITY_MS);
   }
 
   private clearPlayerInactivityTimer(): void {
-    if (this.playerInactivityTimerId !== null) {
-      clearTimeout(this.playerInactivityTimerId);
-      this.playerInactivityTimerId = null;
-    }
+    this.clearLater(this.playerInactivityTimerId);
+    this.playerInactivityTimerId = null;
   }
 
-  private startPriorityCountdown(durationMs: number): void {
+  // ── Priority countdown ─────────────────────────────────────────────────────
+
+  private startPriorityCountdown(durationMs: number, owner: 'you' | 'bot' | 'blocks'): void {
     this.clearPriorityCountdown();
     this.priorityTimerEndMs = Date.now() + durationMs;
-    this.priorityCountdownInterval = setInterval(() => {
-      const remaining = this.priorityTimerEndMs ? Math.max(0, this.priorityTimerEndMs - Date.now()) : 0;
-      const el = this.container.querySelector<HTMLElement>('#priority-timer');
-      if (el) {
-        el.textContent = `⏱ ${Math.ceil(remaining / 1000)}s`;
-        if (remaining <= 5000) el.style.color = 'var(--red)';
-        else el.style.color = 'var(--gold)';
-      }
-      if (remaining <= 0) this.clearPriorityCountdown();
-    }, 250);
+    this.priorityTimerOwner = owner;
+    // Paint immediately: the clock used to be started by paths that run after the
+    // last render, leaving it running but hidden.
+    this.updateTimerDisplay();
+    this.priorityCountdownInterval = setInterval(() => this.updateTimerDisplay(), 250);
   }
 
   private clearPriorityCountdown(): void {
@@ -437,62 +751,95 @@ export class BotGameScreen {
       this.priorityCountdownInterval = null;
     }
     this.priorityTimerEndMs = null;
+    this.priorityTimerOwner = null;
+    this.updateTimerDisplay();
   }
 
-  // When bot has priority during player's turn (e.g. after ancient use), auto-pass back
+  /**
+   * The only writer for the countdown element. Owns text, colour *and* visibility,
+   * so the clock is never left hidden by a render that happened before it started.
+   */
+  private updateTimerDisplay(): void {
+    const el = this.container.querySelector<HTMLElement>('#priority-timer');
+    if (!el) return;
+    if (this.priorityTimerEndMs === null) {
+      el.style.display = 'none';
+      el.textContent = '';
+      return;
+    }
+    const remaining = Math.max(0, this.priorityTimerEndMs - Date.now());
+    const secs = Math.ceil(remaining / 1000);
+    const label = this.priorityTimerOwner === 'bot' ? 'bot'
+      : this.priorityTimerOwner === 'blocks' ? 'blocks'
+      : 'you';
+    el.style.display = '';
+    el.textContent = `⏱ ${secs}s · ${label}`;
+    el.style.color = remaining <= 5000 ? 'var(--red)' : 'var(--gold)';
+  }
+
+  // ── Bot auto-pass on an empty stack ────────────────────────────────────────
+
+  /**
+   * The bot briefly holds priority during the player's turn (after the player used
+   * an ancient, say) and then hands it back. Pre-damage is excluded: that window is
+   * owned by `runPreDamageGate` / `handlePassPriority`.
+   */
   private botAutoPassPriority(): void {
     if (this.botAutoPassScheduled) return;
+    if (this.isHalted()) return;
     this.botAutoPassScheduled = true;
-    const botPriorityMs = 1500;
-    this.startPriorityCountdown(botPriorityMs);
-    setTimeout(() => {
+    this.startPriorityCountdown(BOT_AUTO_PASS_MS, 'bot');
+    this.later(() => {
       this.botAutoPassScheduled = false;
       this.clearPriorityCountdown();
+      if (this.isHalted()) return;
       const gs = this.gameState;
       const myUid = this.currentUser.uid;
-      if (gs.currentTurn !== myUid || gs.priorityPlayer === myUid || this.botRunning || gs.winner) return;
+      if (gs.currentTurn !== myUid || gs.priorityPlayer === myUid || gs.winner) return;
+      if (this.botRunning || this.waitingOnPlayer || this.stackLoopRunning) return;
 
-      // Pre-damage: if the player already passed (stackPassedOnce), bot passing
-      // means both players have passed priority → resolve combat damage.
-      if (gs.combatStep === 'pre-damage' && gs.stackPassedOnce) {
-        const next = advancePhase(gs, myUid);
-        if (next !== gs) this.setState(next);
+      if (gs.combatStep === 'pre-damage') {
+        // Bot passing here may close the pre-damage window and resolve damage.
+        if (this.passPriorityFor(BOT_UID)) {
+          const next = advancePhase(this.gameState, this.gameState.currentTurn);
+          if (next !== this.gameState) this.setState(next);
+        } else {
+          this.startPlayerInactivityTimer();
+        }
         return;
       }
 
-      // Bot passes priority back to player
-      this.gameState = { ...gs, priorityPlayer: myUid, stackPassedOnce: false, stackPassPriority: undefined };
-      this.render();
+      // Empty-stack window outside combat: nothing to respond to, hand it straight back.
+      this.commit(resetPriority(gs, myUid));
       this.startPlayerInactivityTimer();
-    }, botPriorityMs);
+    }, BOT_AUTO_PASS_MS);
   }
 
-  // Periodic sanity check: ensures the bot isn't stuck holding priority without an
-  // action timer running. This acts as a safety net for edge cases the normal flow
-  // might miss (e.g., after ancient use kills a being while the stack is active).
+  /**
+   * Safety net: if the bot ends up holding priority during the player's turn with
+   * nothing driving it, restart the right flow. Halted games are left alone.
+   */
   private botPrioritySanityCheck(): void {
     const gs = this.gameState;
     if (gs.winner || this.gamePhase !== 'playing') return;
+    if (this.isHalted()) return;
     const myUid = this.currentUser.uid;
 
-    // Only intervene when the bot holds priority during the player's turn
-    // and no other mechanism is already handling it.
-    if (gs.currentTurn !== myUid) return;               // bot's turn handled by runBotTurnAsync
-    if (gs.priorityPlayer === myUid) return;             // player has priority, nothing to fix
+    if (gs.currentTurn !== myUid) return;                 // bot's turn: runBotTurnAsync owns it
+    if (gs.priorityPlayer === myUid) return;              // player has priority
     if (this.botRunning || this.waitingOnPlayer) return;  // already in progress
+    if (this.stackLoopRunning) return;                    // stack loop owns it
     if (this.botAutoPassScheduled) return;                // auto-pass already scheduled
 
-    // Bot has priority on player's turn with nothing driving it — kick-start recovery
     if (gs.stack.length > 0) {
-      console.warn('[SanityCheck] Bot has priority with stack items — triggering stack response');
-      this.triggerBotStackResponse();
+      console.warn('[SanityCheck] Bot has priority with stack items — driving stack priority');
+      void this.driveStackPriority();
     } else {
       console.warn('[SanityCheck] Bot has priority with empty stack — triggering auto-pass');
       this.botAutoPassPriority();
     }
   }
 
-  // Choose the damage mode that maximises damage for the bot
   // ── Willow AI: detect player actions from state diffs ─────────────────────
   private prevPlayerHand: Set<string> = new Set();
   private willowDetectPlayerActions(playerUid: string, gs: GameState): void {
@@ -536,10 +883,10 @@ export class BotGameScreen {
     this.botRunning = true;
     try {
       await this.delay(1000);
+      await this.awaitUnhalted();
       let gs = this.gameState;
       const myUid = this.currentUser.uid;
       if (gs.currentTurn !== myUid || gs.combatStep !== 'blocks' || gs.winner) {
-        this.botRunning = false;
         return;
       }
 
@@ -564,46 +911,48 @@ export class BotGameScreen {
         Object.keys(willowAssignments).length > 0 ? 'block_selective' : 'no_block',
       );
 
-      this.gameState = gs;
-      this.render();
+      this.commit(gs);
       await this.delay(600);
 
-      // Advance: blocks → pre-damage (priority passes before combat damage resolves)
+      // Advance: blocks → pre-damage. The player (active player) holds priority
+      // there and must pass before damage resolves; the bot then passes too.
       gs = advancePhase(this.gameState, myUid);
-      // Stop at pre-damage — let the player pass priority before damage resolves.
-      // When player passes, handlePassPriority routes through pre-damage priority flow,
-      // which gives the bot a chance to respond, then both passing resolves combat.
-      this.gameState = gs;
-      this.render();
+      // Release the bot BEFORE rendering: `buildActionBar` suppresses every button
+      // while the bot is running, so rendering first left the player at pre-damage
+      // with no Pass Priority button and no clock.
+      this.botRunning = false;
+      this.commit(gs);
     } catch (e) {
       console.warn('Bot blocking error:', e);
+    } finally {
+      this.botRunning = false;
+      this.render();
+      this.startPlayerInactivityTimer();
     }
-    this.botRunning = false;
-    this.startPlayerInactivityTimer();
   }
 
   private async runBotTurnAsync(): Promise<void> {
     let gs = this.gameState;
 
     try {
+      await this.awaitUnhalted();
       // replenish → draw
       if (gs.phase === 'replenish') gs = advancePhase(gs, BOT_UID);
       if (gs.phase === 'draw') gs = advancePhase(gs, BOT_UID);
-      this.gameState = gs;
-      this.render();
+      this.commit(gs);
       await this.delay(400);
 
       // play1
       if (gs.phase === 'play1') {
         gs = await this.botPlayPhase(gs);
         gs = advancePhase(gs, BOT_UID); // → combat
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
       }
 
       // combat
       if (gs.phase === 'combat') {
+        await this.awaitUnhalted();
         gs = advancePhase(gs, BOT_UID); // none → pre
         gs = advancePhase(gs, BOT_UID); // pre → attackers
 
@@ -625,61 +974,51 @@ export class BotGameScreen {
         } else {
           this.willow.recordBotAction(gs, BOT_UID, 'no_attack');
         }
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
 
         // advancePhase auto-skips blocking if player has no unexhausted beings
         gs = advancePhase(gs, BOT_UID); // attackers → blocks (or pre-damage if no player blockers)
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
 
         if (gs.combatStep === 'blocks') {
-          // Wait for player to declare blockers (up to 30s), then advance
-          gs = await this.waitForPlayerPriority(30000);
-          gs = advancePhase(gs, BOT_UID); // blocks → pre-damage
-          this.gameState = gs;
-          this.render();
+          // Blocking is the defender's step and `advancePhase` already handed them
+          // priority, so the banner and the action bar agree while we wait.
+          await this.awaitPlayerWait('blocks', PLAYER_BLOCK_MS);
+          gs = advancePhase(this.gameState, BOT_UID); // blocks → pre-damage
+          this.commit(gs);
           await this.delay(400);
         }
 
-        // Pre-damage priority: give player a chance to act before combat damage resolves
+        // Pre-damage: a real two-pass priority window. The bot passes, the player
+        // passes (or responds, which opens a stack window first), and only then does
+        // combat damage resolve.
         if (gs.combatStep === 'pre-damage') {
-          gs = await this.waitForPlayerPriority(30000);
-          // Resolve any spells the player may have cast during pre-damage priority
-          if (gs.stack.length > 0) {
-            gs = resolveEntireStack(gs);
-            this.gameState = gs;
-            this.render();
-            await this.delay(400);
-          }
-          gs = advancePhase(gs, BOT_UID); // pre-damage → resolves or sets pendingDamageChoice
+          gs = await this.runPreDamageGate();
         }
 
         // Bot auto-chooses best damage mode if unblocked attackers are present
-        if (gs.pendingDamageChoice) {
+        if (gs.pendingDamageChoice && gs.currentTurn === BOT_UID) {
           const mode = this.botChooseDamageMode(gs);
           gs = chooseCombatDamageMode(gs, BOT_UID, mode);
         }
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
       }
 
       // play2
       if (gs.phase === 'play2') {
+        await this.awaitUnhalted();
         gs = await this.botPlayPhase(gs);
         gs = advancePhase(gs, BOT_UID); // → end
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(300);
       }
 
       if (gs.phase === 'end') {
         gs = advancePhase(gs, BOT_UID);
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
       }
     } catch (e) {
       console.warn('Bot turn error:', e);
@@ -712,8 +1051,7 @@ export class BotGameScreen {
           gs = next;
           landPlayed++;
           this.willow.recordBotAction(gs, BOT_UID, 'play_landscape', 0.1);
-          this.gameState = gs;
-          this.render();
+          this.commit(gs);
           await this.delay(500);
         }
       }
@@ -734,17 +1072,16 @@ export class BotGameScreen {
         const cost = def?.cost ?? 1;
         const action = def?.isFlyer ? 'play_flyer' : (`play_being_${Math.min(5, Math.max(1, cost))}` as any);
         this.willow.recordBotAction(gs, BOT_UID, action, 0.05 * cost);
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
 
         if (gs.stack.length > 0) {
-          // Give player priority to respond (up to 20s)
-          gs = await this.waitForPlayerPriority(30000);
-          // Resolve all stack entries and show any ritual popups
-          gs = this.maybeShowRitualPopup(resolveEntireStack(gs));
-          this.gameState = gs;
-          this.render();
+          // Hand priority to the player and run the shared priority loop, which
+          // resolves the stack only once both sides have passed — and gives the bot
+          // its own response window if the player answers.
+          await this.driveStackPriority();
+          gs = this.maybeShowRitualPopup(this.gameState);
+          this.commit(gs);
           await this.delay(400);
         }
       }
@@ -789,15 +1126,13 @@ export class BotGameScreen {
       if (next !== gs) {
         gs = next;
         this.willow.recordBotAction(gs, BOT_UID, actionLabel as any, 0.1);
-        this.gameState = gs;
-        this.render();
+        this.commit(gs);
         await this.delay(400);
 
         if (gs.stack.length > 0) {
-          gs = await this.waitForPlayerPriority(30000);
-          gs = this.maybeShowRitualPopup(resolveEntireStack(gs));
-          this.gameState = gs;
-          this.render();
+          await this.driveStackPriority();
+          gs = this.maybeShowRitualPopup(this.gameState);
+          this.commit(gs);
           await this.delay(400);
         }
       }
@@ -919,11 +1254,10 @@ export class BotGameScreen {
       ? `Combat · ${gs.combatStep}`
       : phaseDesc;
 
-    // Priority timer remaining
-    const timerRemaining = this.priorityTimerEndMs ? Math.max(0, Math.ceil((this.priorityTimerEndMs - Date.now()) / 1000)) : null;
-    const timerHtml = (timerRemaining !== null)
-      ? `<span id="priority-timer" class="priority-timer" style="color:${timerRemaining <= 5 ? 'var(--red)' : 'var(--gold)'}">⏱ ${timerRemaining}s</span>`
-      : '<span id="priority-timer" class="priority-timer" style="display:none"></span>';
+    // Priority timer. The element is always emitted and `updateTimerDisplay()` is
+    // the only thing that sets its text and visibility — previously render() baked
+    // in `display:none`, so any clock started after the last render ran invisibly.
+    const timerHtml = '<span id="priority-timer" class="priority-timer" style="display:none"></span>';
 
     // WP colors for circles
     const wpColor = opp.willPower <= 5 ? '#ff4466' : opp.willPower <= 10 ? '#ff7700' : 'var(--red)';
@@ -1119,6 +1453,8 @@ export class BotGameScreen {
 
     this.attachGameListeners();
     this.updateBlockLinesSVG();
+    // Repaint the clock into the freshly-built DOM.
+    this.updateTimerDisplay();
   }
 
   private buildInfoBar(gs: GameState, ps: PlayerGameState, opp: PlayerGameState, isMyTurn: boolean, myHasP: boolean, timerHtml: string): string {
@@ -1170,8 +1506,14 @@ export class BotGameScreen {
     const leftBtns: string[] = [];
     const rightBtns: string[] = [];
 
-    if (this.waitingOnPlayer) {
-      rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">⚡ Pass Priority (bot waiting)</button>`);
+    const waitKind = this.playerWait?.kind;
+    if (this.waitingOnPlayer && waitKind !== 'blocks') {
+      // Label the window the player is actually in, so "pass" is not ambiguous.
+      // The blocks step is skipped here — it has its own Done Blocking button below.
+      const label = waitKind === 'predamage'
+        ? '⚡ Pass Priority (before damage)'
+        : '⚡ Pass Priority';
+      rightBtns.push(`<button id="btn-pass-priority" class="btn-gold pulse-anim">${label}</button>`);
     } else if (isMyTurn && myHasP) {
       if (gs.phase === 'combat' && gs.combatStep === 'attackers') {
         // Attack with All (left) — only if there are eligible attackers not already declared
@@ -1206,7 +1548,8 @@ export class BotGameScreen {
     }
 
     if (!isMyTurn && gs.phase === 'combat' && gs.combatStep === 'blocks') {
-      rightBtns.push(`<button id="btn-done-blocks" class="btn-green">🛡 Done Blocking</button>`);
+      const cls = waitKind === 'blocks' ? 'btn-green pulse-anim' : 'btn-green';
+      rightBtns.push(`<button id="btn-done-blocks" class="${cls}">🛡 Done Blocking</button>`);
     }
 
     if (leftBtns.length === 0 && rightBtns.length === 0) return '';
@@ -1219,8 +1562,26 @@ export class BotGameScreen {
   }
 
   private buildStackPopup(gs: GameState, myUid: string): string {
-    const stackActive = gs.stack.length > 0 || this.waitingOnPlayer;
-    if (!stackActive) return '';
+    // Only show the stack when there is one. It used to also appear whenever the bot
+    // was waiting on the player, which during the blocking step rendered an "Empty"
+    // stack with a Pass Priority button attached to it.
+    if (gs.stack.length === 0) return '';
+
+    const targetLabel = (target: string): string => {
+      if (target === 'opponent') return 'ScapeBot';
+      if (target === gs.player1 || target === gs.player2) {
+        return target === myUid ? 'You' : 'ScapeBot';
+      }
+      for (const ps of [gs.p1State, gs.p2State]) {
+        const card = ps.battlefield.find(c => c.id === target)
+          ?? ps.hand.find(c => c.id === target);
+        if (card) {
+          const name = CARD_DEFS[card.defId]?.name ?? 'card';
+          return ps.uid === myUid ? `your ${name}` : `bot's ${name}`;
+        }
+      }
+      return 'target';
+    };
 
     const stackItems = [...gs.stack].reverse().map((entry, i) => {
       const def = CARD_DEFS[entry.cardDefId];
@@ -1236,7 +1597,7 @@ export class BotGameScreen {
             <div class="stack-entry-info">
               <span class="stack-badge">${gs.stack.length - i}</span>
               <span>${def?.name ?? '?'} (${entry.playerId === myUid ? 'YOU' : 'BOT'})</span>
-              ${entry.target ? `<span style="color:var(--text-dim);font-size:9px">→ ${entry.target}</span>` : ''}
+              ${entry.target ? `<span style="color:var(--text-dim);font-size:9px">→ ${targetLabel(entry.target)}</span>` : ''}
             </div>
           </div>
         </div>
@@ -1251,8 +1612,8 @@ export class BotGameScreen {
       <div class="stack-popup">
         <div class="stack-title">📚 STACK</div>
         ${priorityInfo}
-        <div class="stack-list">${stackItems || '<div style="color:var(--text-dim);font-size:9px">Empty</div>'}</div>
-        ${this.waitingOnPlayer ? `<button id="btn-pass-in-stack" class="btn-gold w-full mt-8">⚡ Pass Priority</button>` : ''}
+        <div class="stack-list">${stackItems}</div>
+        ${gs.priorityPlayer === myUid ? `<button id="btn-pass-in-stack" class="btn-gold w-full mt-8">⚡ Pass Priority</button>` : ''}
       </div>
     `;
   }
@@ -1879,12 +2240,13 @@ export class BotGameScreen {
       this.gamePaused = !this.gamePaused;
       this.showSettings = false;
       if (this.gamePaused) {
+        // The bot and stack loops park on `isHalted()`; stop every clock, including
+        // an open priority window's, so nothing auto-passes while paused.
         this.clearPlayerInactivityTimer();
+        this.haltPlayerWaitClock();
         this.clearPriorityCountdown();
       } else {
-        if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
-          this.startPlayerInactivityTimer();
-        }
+        this.resumeAfterHalt();
       }
       this.render();
     });
@@ -1974,9 +2336,7 @@ export class BotGameScreen {
       this.phaseBreakpoint = null;
       this.showBreakpointPicker = false;
       this.render();
-      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
-        this.startPlayerInactivityTimer();
-      }
+      this.resumeAfterHalt();
     });
     this.container.querySelector('#btn-bp-close')?.addEventListener('click', () => {
       this.showBreakpointPicker = false;
@@ -1993,17 +2353,13 @@ export class BotGameScreen {
     this.container.querySelector('#btn-bp-hit-continue')?.addEventListener('click', () => {
       this.breakpointHitPhase = null;
       this.render();
-      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
-        this.startPlayerInactivityTimer();
-      }
+      this.resumeAfterHalt();
     });
     this.container.querySelector('#btn-bp-hit-clear')?.addEventListener('click', () => {
       this.breakpointHitPhase = null;
       this.phaseBreakpoint = null;
       this.render();
-      if (gs.currentTurn === myUid && gs.priorityPlayer === myUid && !this.waitingOnPlayer) {
-        this.startPlayerInactivityTimer();
-      }
+      this.resumeAfterHalt();
     });
 
     // Pause overlay — open settings
@@ -2021,29 +2377,36 @@ export class BotGameScreen {
     // Phase/priority buttons
     this.container.querySelector('#btn-next-phase')?.addEventListener('click', () => {
       if (!isMyTurn || (this.botRunning && !this.waitingOnPlayer)) return;
-      const next = advancePhase(gs, myUid);
-      if (next !== gs) this.setState(next);
+      if (this.isHalted()) return;
+      // With cards on the stack, advancing the phase used to call `advancePhase`,
+      // which quietly resolves the whole stack — skipping the bot's response window.
+      // Route it through the pass-priority flow instead.
+      if (this.gameState.stack.length > 0) {
+        this.handlePassPriority();
+        return;
+      }
+      const next = advancePhase(this.gameState, myUid);
+      if (next !== this.gameState) this.setState(next);
     });
 
     this.container.querySelector('#btn-end-turn')?.addEventListener('click', () => {
       if (!isMyTurn || (this.botRunning && !this.waitingOnPlayer)) return;
-      const resolved = gs.stack.length > 0 ? resolveEntireStack(gs) : gs;
-      // If stack is empty and we're not in a combat step, go directly to end
-      if (resolved.stack.length === 0 && (resolved.phase !== 'combat' || resolved.combatStep === 'none')) {
-        const ended = advancePhase({ ...resolved, phase: 'end', combatStep: 'none', pendingDamageChoice: undefined }, myUid);
-        this.setState(ended);
-      } else {
-        // Fallback: hand priority to bot for combat/stack cases
-        this.setState({
-          ...resolved,
-          phase: 'end',
-          combatStep: 'none',
-          pendingDamageChoice: undefined,
-          stackPassedOnce: false,
-          stackPassPriority: undefined,
-          priorityPlayer: BOT_UID,
-        });
+      if (this.isHalted()) return;
+      const cur = this.gameState;
+      // A live stack has to be settled by both players first — ending the turn is not
+      // a way to skip the bot's response window. Pass priority; the player can end the
+      // turn once the stack is empty.
+      if (cur.stack.length > 0) {
+        this.handlePassPriority();
+        return;
       }
+      // Jump to the end step and let advancePhase run the normal end-of-turn path,
+      // which resets priority to the incoming player.
+      const ended = advancePhase(
+        resetPriority({ ...cur, phase: 'end', combatStep: 'none', pendingDamageChoice: undefined }, myUid),
+        myUid
+      );
+      this.setState(ended);
     });
 
     this.container.querySelector('#btn-pass-priority')?.addEventListener('click', () => {
@@ -2078,10 +2441,8 @@ export class BotGameScreen {
 
     this.container.querySelector('#btn-done-blocks')?.addEventListener('click', () => {
       if (isMyTurn) return; // defender blocks
-      // Signal bot that player is done declaring blockers
-      if (this.waitingOnPlayer) {
-        this.resolvePlayerPriority();
-      }
+      // Signal the bot that the player is done declaring blockers
+      if (this.isWaitingFor('blocks')) this.settlePlayerWait('passed');
     });
 
     // Graveyard buttons
@@ -2484,11 +2845,7 @@ export class BotGameScreen {
         this.showWaspPaymentModal(gs, myUid, cardId);
       } else {
         const next = playCard(gs, myUid, cardId);
-        if (next !== gs) {
-          this.setState(next);
-          // Stack now has the card; bot gets priority to respond
-          if (next.stack.length > 0) this.triggerBotStackResponse();
-        }
+        if (next !== gs) this.setState(next);
       }
     } else if (zone === 'attack' && def.type === 'being' && gs.phase === 'combat' && gs.combatStep === 'attackers') {
       // Play being from hand to attack zone
@@ -2496,10 +2853,7 @@ export class BotGameScreen {
         this.showWaspPaymentModal(gs, myUid, cardId);
       } else {
         const afterPlay = playCard(gs, myUid, cardId);
-        if (afterPlay !== gs) {
-          this.setState(afterPlay);
-          if (afterPlay.stack.length > 0) this.triggerBotStackResponse();
-        }
+        if (afterPlay !== gs) this.setState(afterPlay);
       }
     } else if (def.type === 'spell') {
       // Cast spell — show target picker if needed
@@ -2507,85 +2861,61 @@ export class BotGameScreen {
         this.showTargetPicker(gs, myUid, cardId);
       } else {
         const next = playCard(gs, myUid, cardId);
-        if (next !== gs) {
-          this.setState(next);
-          if (next.stack.length > 0) this.triggerBotStackResponse();
-        }
+        if (next !== gs) this.setState(next);
       }
     }
   }
 
+  /**
+   * The player passing priority. There is exactly one rule here: record the pass in
+   * the current window and let whoever is driving that window decide what happens
+   * next. This used to hand-roll the pass tracker and, for pre-damage, drive the
+   * combat gate off the overloaded `stackPassedOnce` flag.
+   */
   private handlePassPriority(): void {
     const gs = this.gameState;
     const myUid = this.currentUser.uid;
+    if (gs.winner) return;
+    if (this.isHalted()) return;
 
-    if (this.waitingOnPlayer) {
-      // Bot is waiting for player to pass (blocking or stack response)
-      this.resolvePlayerPriority();
+    // A window is open and being awaited (stack response, blocks, or pre-damage) —
+    // the driving loop records the pass and decides the outcome.
+    if (this.playerWait) {
+      this.settlePlayerWait('passed');
       return;
     }
+
+    // Only the priority holder can pass.
+    if (gs.priorityPlayer !== myUid) return;
 
     if (gs.stack.length > 0) {
-      // Only the priority holder can act on the stack. If the bot currently holds
-      // priority, wait for triggerBotStackResponse to pass it back before acting.
-      if (gs.priorityPlayer !== myUid) return;
-
-      const stackOrder: Record<string, number> = {};
-      gs.stack.forEach((entry, idx) => {
-        stackOrder[entry.id] = idx + 1;
-      });
-
-      const hasMatchingStackSnapshot = !!gs.stackPassPriority
-        && gs.stack.length === Object.keys(gs.stackPassPriority.stackOrder).length
-        && gs.stack.every((entry, idx) => gs.stackPassPriority!.stackOrder[entry.id] === idx + 1);
-
-      const tracker = hasMatchingStackSnapshot
-        ? gs.stackPassPriority!
-        : { stackOrder, passOrder: {} as Record<string, number> };
-
-      // Ignore duplicate pass presses by the same player for the same stack snapshot.
-      if (tracker.passOrder[myUid] !== undefined) return;
-
-      const nextPassOrder = {
-        ...tracker.passOrder,
-        [myUid]: Object.keys(tracker.passOrder).length + 1,
-      };
-      const nextTracker = { ...tracker, passOrder: nextPassOrder };
-      const bothPassed = nextPassOrder[myUid] !== undefined && nextPassOrder[BOT_UID] !== undefined;
-
-      if (!bothPassed) {
-        // First pass for this stack snapshot: give priority to the bot to respond/pass.
-        this.gameState = { ...gs, priorityPlayer: BOT_UID, stackPassedOnce: true, stackPassPriority: nextTracker };
-        this.render();
-        this.triggerBotStackResponse();
-      } else {
-        // Both sides have passed in succession — resolve the entire stack.
+      // No loop is running (e.g. the player passed the instant the stack appeared) —
+      // record the pass and start the loop, which picks up from the recorded state.
+      if (this.passPriorityFor(myUid)) {
         this.setState(resolveEntireStack(this.gameState));
-        this.startPlayerInactivityTimer();
+      } else {
+        void this.driveStackPriority();
       }
       return;
     }
 
-    // Stack is empty and player has priority → pass priority advances the phase
-    // Pre-damage priority: pass priority to bot before combat damage resolves
-    if (gs.currentTurn === myUid && gs.priorityPlayer === myUid) {
-      if (gs.stack.length === 0 && gs.combatStep === 'pre-damage') {
-        if (!gs.stackPassedOnce) {
-          // Player passes priority at pre-damage: give bot a chance to act before damage
-          this.gameState = { ...gs, priorityPlayer: BOT_UID, stackPassedOnce: true };
-          this.render();
-          this.botAutoPassPriority();
-          return;
-        }
-        // Both passed: resolve combat damage
-        const next = advancePhase(gs, myUid);
-        if (next !== gs) this.setState(next);
-        return;
-      }
+    if (gs.currentTurn !== myUid) return;
 
-      const next = advancePhase(gs, myUid);
-      if (next !== gs) this.setState(next);
+    // Pre-damage is a two-pass window like any other: pass, let the bot pass, then
+    // damage resolves.
+    if (gs.combatStep === 'pre-damage') {
+      if (this.passPriorityFor(myUid)) {
+        const next = advancePhase(this.gameState, myUid);
+        if (next !== this.gameState) this.setState(next);
+      } else {
+        this.botAutoPassPriority();
+      }
+      return;
     }
+
+    // Empty stack outside combat: passing priority advances the phase.
+    const next = advancePhase(gs, myUid);
+    if (next !== gs) this.setState(next);
   }
 
   private handleHandCardClick(gs: GameState, ps: PlayerGameState, cardId: string, uid: string): void {
@@ -2617,52 +2947,10 @@ export class BotGameScreen {
     this.selectedCard = null;
     const newState = playCard(gs, uid, cardId);
     if (newState !== gs) {
+      // setState starts the shared stack-priority loop, which gives the bot its
+      // response window and resolves only when both players have passed.
       this.setState(newState);
-      if (newState.stack.length > 0) {
-        // Bot gets priority to respond; after a delay it either responds or passes back
-        this.triggerBotStackResponse();
-      }
     }
-  }
-
-  // Bot responds to stack (may counter) or passes priority back to player
-  private triggerBotStackResponse(): void {
-    setTimeout(() => {
-      const gs = this.gameState;
-      // Stale timer: the stack was already resolved before this callback fired.
-      // Do nothing — a fresh triggerBotStackResponse will be scheduled when needed.
-      if (gs.stack.length === 0) return;
-
-      const botResponded = this.botTryRespond();
-      if (!botResponded) {
-        const myUid = this.currentUser.uid;
-        const stackOrder: Record<string, number> = {};
-        gs.stack.forEach((entry, idx) => {
-          stackOrder[entry.id] = idx + 1;
-        });
-
-        const hasMatchingStackSnapshot = !!gs.stackPassPriority
-          && gs.stack.length === Object.keys(gs.stackPassPriority.stackOrder).length
-          && gs.stack.every((entry, idx) => gs.stackPassPriority!.stackOrder[entry.id] === idx + 1);
-
-        const tracker = hasMatchingStackSnapshot
-          ? gs.stackPassPriority!
-          : { stackOrder, passOrder: {} as Record<string, number> };
-
-        const nextPassOrder = tracker.passOrder[BOT_UID] === undefined
-          ? { ...tracker.passOrder, [BOT_UID]: Object.keys(tracker.passOrder).length + 1 }
-          : tracker.passOrder;
-
-        // Bot passes priority back to the player; pass order is now recorded for this stack.
-        this.gameState = {
-          ...gs,
-          priorityPlayer: myUid,
-          stackPassedOnce: true,
-          stackPassPriority: { ...tracker, passOrder: nextPassOrder },
-        };
-        this.render();
-      }
-    }, 1200);
   }
 
   private botTryRespond(): boolean {
@@ -2687,16 +2975,10 @@ export class BotGameScreen {
         const next = playCard(gs, BOT_UID, cancelCard.id);
         if (next !== gs) {
           this.willow.recordBotAction(gs, BOT_UID, 'respond_cancel', 0.2);
-          this.gameState = next;
-          this.render();
-          // Bot's cancel is on stack; pass priority back to player to respond
-          setTimeout(() => {
-            const cur = this.gameState;
-            if (cur.priorityPlayer !== myUid) {
-              this.gameState = { ...cur, priorityPlayer: myUid };
-              this.render();
-            }
-          }, 600);
+          // The bot's response opened a fresh window (playCard resets the pass order)
+          // and `playCard` already handed priority to the player, so the stack loop
+          // picks straight up with the player's response window. No extra timer.
+          this.commit(next);
           return true;
         }
       }
@@ -2764,15 +3046,17 @@ export class BotGameScreen {
       btn.addEventListener('click', () => {
         const target = btn.dataset.target ?? '';
         overlay.remove();
-        const newState = playCard(gs, uid, cardId, target);
         this.selectedCard = null;
-        if (newState !== gs) {
+        // Play from the CURRENT state, not the snapshot captured when this modal
+        // opened. Using the snapshot discarded anything that happened while the
+        // modal was up (a bot response, a phase advance) and rolled the game back.
+        // `playCard` now also refuses the play outright if priority has moved on.
+        const current = this.gameState;
+        const newState = playCard(current, uid, cardId, target);
+        if (newState !== current) {
           this.setState(newState);
-          if (newState.stack.length > 0) {
-            this.triggerBotStackResponse();
-          }
         } else {
-          this.render();
+          this.commit(addScreenLog(current, 'That play is no longer legal — priority moved on.'));
         }
       });
     });
@@ -2811,8 +3095,10 @@ export class BotGameScreen {
       btn.addEventListener('click', () => {
         const target = btn.dataset.target;
         overlay.remove();
-        const newState = useAncient(gs, uid, target);
-        if (newState !== gs) this.setState(newState);
+        // Use the live state — see showTargetPicker.
+        const current = this.gameState;
+        const newState = useAncient(current, uid, target);
+        if (newState !== current) this.setState(newState);
       });
     });
 
@@ -2920,10 +3206,7 @@ export class BotGameScreen {
       overlay.remove();
       // Pay with 3 lands (1 extra)
       const newState = playCard(this.gameState, uid, cardId, undefined, 1);
-      if (newState !== this.gameState) {
-        this.setState(newState);
-        if (newState.stack.length > 0) this.triggerBotStackResponse();
-      }
+      if (newState !== this.gameState) this.setState(newState);
     });
 
     overlay.querySelector('#btn-wasp-cancel')?.addEventListener('click', () => overlay.remove());
@@ -2970,9 +3253,10 @@ export class BotGameScreen {
         const discardId = btn.dataset.id!;
         overlay.remove();
 
-        // Discard the selected card from the snapshot state (captured when the modal opened),
-        // then play the wasp from the resulting state.
-        let discardedGs = gs;
+        // Discard from the CURRENT state, then play the wasp from the result. This
+        // used to derive from the snapshot taken when the modal opened, which threw
+        // away anything that happened in the meantime.
+        let discardedGs = this.gameState;
         const snapPs = getPlayerState(discardedGs, uid);
         const idx = snapPs.hand.findIndex(c => c.id === discardId);
         if (idx !== -1) {
@@ -2986,10 +3270,7 @@ export class BotGameScreen {
 
         // Now play the wasp (normal 2-land cost) from the discarded state
         const newState = playCard(discardedGs, uid, waspCardId);
-        if (newState !== discardedGs) {
-          this.setState(newState);
-          if (newState.stack.length > 0) this.triggerBotStackResponse();
-        }
+        if (newState !== discardedGs) this.setState(newState);
       });
     });
 
@@ -3240,7 +3521,7 @@ export class BotGameScreen {
       if (newState !== this.gameState) {
         this.setState(newState);
         // Show discard modal after drawing
-        setTimeout(() => this.showDiscardModal(), 400);
+        this.later(() => this.showDiscardModal(), 400);
       }
     });
     overlay.querySelector('#btn-sac-ancient-cancel')?.addEventListener('click', () => overlay.remove());
@@ -3289,12 +3570,20 @@ export class BotGameScreen {
   }
 
   destroy(): void {
-    if (this.priorityTimeoutId !== null) clearTimeout(this.priorityTimeoutId);
+    // Stop every loop before tearing timers down: `isHalted()` parks the bot and
+    // stack loops, and settling the wait releases anything awaiting the player.
+    this.destroyed = true;
+    this.settlePlayerWait('acted');
     if (this.ritualPopupTimerId !== null) clearTimeout(this.ritualPopupTimerId);
     if (this.turnPopupTimerId !== null) clearTimeout(this.turnPopupTimerId);
-    if (this.botSanityTimerId !== null) clearInterval(this.botSanityTimerId);
+    if (this.botSanityTimerId !== null) {
+      clearInterval(this.botSanityTimerId);
+      this.botSanityTimerId = null;
+    }
     this.clearPlayerInactivityTimer();
     this.clearPriorityCountdown();
+    // Every tracked setTimeout, including the ones that used to be fire-and-forget.
+    this.clearAllTimeouts();
     if (this.mouseMoveHandler) {
       document.removeEventListener('mousemove', this.mouseMoveHandler);
       this.mouseMoveHandler = null;

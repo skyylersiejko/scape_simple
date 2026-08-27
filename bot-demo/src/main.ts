@@ -150,6 +150,7 @@ function attachWillowWidgetListeners(): void {
 }
 
 function showStartScreen(): void {
+  teardownActiveGame();
   app.innerHTML = `
     <div style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:24px;background:rgba(51, 0, 51);">
       ${buildWillowWidget()}
@@ -169,7 +170,22 @@ function showStartScreen(): void {
   attachWillowWidgetListeners();
 }
 
+/**
+ * The game screen currently mounted, if any. Kept so it can be torn down: without
+ * this, leaving a game to the lobby left its watchdog interval, mousemove listener
+ * and spacebar listener alive, so a second game ran with two of each.
+ */
+let activeGame: BotGameScreen | null = null;
+
+function teardownActiveGame(): void {
+  if (!activeGame) return;
+  activeGame.destroy();
+  activeGame = null;
+}
+
 function startGame(): void {
+  teardownActiveGame();
+
   const guest: User = {
     uid: `guest_${Date.now()}`,
     username: 'Player',
@@ -183,8 +199,12 @@ function startGame(): void {
   };
 
   const screen = new BotGameScreen(guest, (nav: string) => {
-    if (nav === 'lobby') showStartScreen();
+    if (nav === 'lobby') {
+      teardownActiveGame();
+      showStartScreen();
+    }
   });
+  activeGame = screen;
 
   app.innerHTML = '';
   app.appendChild(screen.getElement());
