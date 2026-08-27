@@ -24,7 +24,7 @@ class Main extends React.Component {
           <div className={"Main_Title"}>
             <img alt={"scape_logo"} src={Logo} />
           </div>
-          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center", padding: "15px"}}> version 1.3</div>
+          <div style = {{color: "rgba(214, 195, 73)", textAlign:"center", padding: "15px"}}> version 1.3.1</div>
         </div>
         <div className={"Site_Content"}>
           <About />
