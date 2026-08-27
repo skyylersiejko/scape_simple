@@ -124,6 +124,97 @@ function makeStackPassPriority(stack: StackEntry[]): StackPassPriorityState {
   return { stackOrder, passOrder: {} };
 }
 
+// ─── Priority windows ────────────────────────────────────────────────────────
+//
+// A *priority window* is one round of "each player may act, then pass". It is
+// identified by the stack it was opened over: `stackPassPriority.stackOrder` is a
+// snapshot of that stack, and `passOrder` records who has already passed inside it.
+//
+// The same structure serves windows opened over an *empty* stack (`stackOrder: {}`),
+// which is how the pre-damage combat gate works — so there is exactly one mechanism
+// for "both players passed in succession" rather than one for the stack and a
+// separate overloaded boolean for combat.
+//
+// Any change to the stack (a card played, the stack resolving) invalidates the
+// window, which is what makes a late/duplicate pass harmless instead of corrupting
+// the gate.
+
+/**
+ * True when `state.stackPassPriority` still describes the current stack, i.e. the
+ * recorded passes belong to the window we are in right now. Returns false when no
+ * window has been opened yet.
+ */
+export function priorityWindowMatches(state: GameState): boolean {
+  const w = state.stackPassPriority;
+  if (!w) return false;
+  const stack = state.stack ?? [];
+  if (stack.length !== Object.keys(w.stackOrder).length) return false;
+  return stack.every((entry, idx) => w.stackOrder[entry.id] === idx + 1);
+}
+
+/**
+ * Open a fresh priority window over the current stack and give priority to `holder`.
+ * Any previously recorded passes are discarded — this starts a new round.
+ */
+export function beginPriorityWindow(state: GameState, holder: string): GameState {
+  return {
+    ...state,
+    priorityPlayer: holder,
+    stackPassedOnce: false,
+    stackPassPriority: makeStackPassPriority(state.stack ?? []),
+  };
+}
+
+/**
+ * Clear all priority state and hand priority to `uid`. Called at the points where a
+ * window genuinely ends: the stack finished resolving, the turn changed, or combat
+ * damage was applied.
+ */
+export function resetPriority(state: GameState, uid: string): GameState {
+  return {
+    ...state,
+    priorityPlayer: uid,
+    stackPassedOnce: false,
+    stackPassPriority: undefined,
+  };
+}
+
+/**
+ * Record that `uid` passed priority in the current window.
+ *
+ * Idempotent per player: passing twice in the same window records one pass, so a
+ * duplicate button press or a stale timer cannot fake the opponent's pass. If the
+ * stack changed since the window opened, a fresh window is started first.
+ *
+ * When only one player has passed, priority moves to the opponent so they get their
+ * response window. When both have passed, `bothPassed` is true and `priorityPlayer`
+ * is left on the turn player for the caller to resolve the stack.
+ */
+export function recordPriorityPass(
+  state: GameState, uid: string
+): { state: GameState; bothPassed: boolean } {
+  const window = priorityWindowMatches(state)
+    ? state.stackPassPriority!
+    : makeStackPassPriority(state.stack ?? []);
+
+  const passOrder = window.passOrder[uid] !== undefined
+    ? window.passOrder
+    : { ...window.passOrder, [uid]: Object.keys(window.passOrder).length + 1 };
+
+  const oppUid = state.player1 === uid ? state.player2 : state.player1;
+  const bothPassed = passOrder[uid] !== undefined && passOrder[oppUid] !== undefined;
+
+  return {
+    state: {
+      ...state,
+      priorityPlayer: bothPassed ? state.currentTurn : oppUid,
+      stackPassedOnce: true,
+      stackPassPriority: { ...window, passOrder },
+    },
+    bothPassed,
+  };
+}
+
 export function createInitialGameState(roomId: string, p1Uid: string, p2Uid: string, p1Rank = 100, p2Rank = 100): GameState {
   const makePlayerState = (uid: string): PlayerGameState => {
     const deckDefs = shuffle(buildStandardDeck());
@@ -213,8 +304,8 @@ export function advancePhase(state: GameState, uid: string): GameState {
   const idx = phases.indexOf(state.phase);
 
   if (state.phase === 'combat') {
-    if (state.combatStep === 'none') return { ...state, combatStep: 'pre', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
-    if (state.combatStep === 'pre') return { ...state, combatStep: 'attackers', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+    if (state.combatStep === 'none') return resetPriority({ ...state, combatStep: 'pre' }, uid);
+    if (state.combatStep === 'pre') return resetPriority({ ...state, combatStep: 'attackers' }, uid);
     if (state.combatStep === 'attackers') {
       const oppUid = state.player1 === uid ? state.player2 : state.player1;
       // Skip the blocking step if there are no valid blocking assignments:
@@ -238,11 +329,13 @@ export function advancePhase(state: GameState, uid: string): GameState {
         // No valid blocking available — skip directly to pre-damage.
         // Return pre-damage state and let the caller handle priority passing
         // before combat damage resolves.
-        return { ...state, combatStep: 'pre-damage' as const, priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+        // Priority starts with the active player, as in any step: they pass first,
+        // then the defender, and damage resolves once both have passed.
+        return resetPriority({ ...state, combatStep: 'pre-damage' as const }, uid);
       }
-      return { ...state, combatStep: 'blocks', priorityPlayer: oppUid, stackPassedOnce: false, stackPassPriority: undefined };
+      return resetPriority({ ...state, combatStep: 'blocks' }, oppUid);
     }
-    if (state.combatStep === 'blocks') return { ...state, combatStep: 'pre-damage', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+    if (state.combatStep === 'blocks') return resetPriority({ ...state, combatStep: 'pre-damage' }, uid);
     if (state.combatStep === 'pre-damage') {
       // If a damage choice is already pending, don't advance until it's resolved
       if (state.pendingDamageChoice) return state;
@@ -264,7 +357,7 @@ export function advancePhase(state: GameState, uid: string): GameState {
       }
 
       const afterDmg = resolveCombat(state);
-      return { ...afterDmg, combatStep: 'none', phase: 'play2', priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+      return resetPriority({ ...afterDmg, combatStep: 'none', phase: 'play2' }, uid);
     }
   }
 
@@ -288,13 +381,13 @@ export function advancePhase(state: GameState, uid: string): GameState {
         return !c.exhausted || def.isFlyer;
       });
       if (eligibleAttackers.length === 0) {
-        return { ...resolved, phase: 'play2', combatStep: 'none', priorityPlayer: uid };
+        return resetPriority({ ...resolved, phase: 'play2', combatStep: 'none' }, uid);
       }
       // Transition to combat phase using the stack-resolved state
-      return { ...resolved, phase: nextPhase, priorityPlayer: uid };
+      return resetPriority({ ...resolved, phase: nextPhase }, uid);
     }
 
-    let next: GameState = { ...state, phase: nextPhase, priorityPlayer: uid, stackPassedOnce: false, stackPassPriority: undefined };
+    let next: GameState = resetPriority({ ...state, phase: nextPhase }, uid);
 
     if (nextPhase === 'replenish') {
       next = endTurn(state);
@@ -337,6 +430,12 @@ export function drawCards(state: GameState, uid: string, count: number): GameSta
 
 export function playCard(state: GameState, uid: string, cardInstanceId: string, target?: string, extraLandscapeCost = 0): GameState {
   if (state.winner) return state;
+  // Only the priority holder may put anything into play or onto the stack. This is
+  // the engine-level gate: without it a UI element built from a stale snapshot (a
+  // target picker left open while the bot acted, say) could replay an old state and
+  // silently roll the game back. Returning `state` unchanged is how every call site
+  // already detects "that play was not legal".
+  if (state.priorityPlayer !== uid) return state;
 
   let ps = getPlayerState(state, uid);
   const cardIdx = ps.hand.findIndex(c => c.id === cardInstanceId);
@@ -518,9 +617,11 @@ export function resolveEntireStack(state: GameState): GameState {
     next = { ...next, pendingRitualPopup: warMsg };
   }
 
-  // Clear stack history and reset priority tracking after full resolution
-  next = { ...next, stackHistoryPlays: [], stackWarPlayer: undefined, stackPassedOnce: false, stackPassPriority: undefined };
-  return next;
+  // Clear stack history and reset priority tracking after full resolution.
+  // The stack is gone, so the window that was open over it is gone too and
+  // priority returns to the turn player.
+  next = { ...next, stackHistoryPlays: [], stackWarPlayer: undefined };
+  return resetPriority(next, next.currentTurn);
 }
 
 function resolveSpellEffect(state: GameState, uid: string, spellDefId: string, target?: string): GameState {
@@ -808,7 +909,10 @@ export function chooseCombatDamageMode(state: GameState, uid: string, mode: 'add
 
   const withLog = addLog(state, `${uid} chose ${mode} unblocked damage.`);
   const afterDmg = resolveCombat(withLog, mode);
-  return { ...afterDmg, combatStep: 'none', phase: 'play2', priorityPlayer: uid, pendingDamageChoice: undefined };
+  return resetPriority(
+    { ...afterDmg, combatStep: 'none', phase: 'play2', pendingDamageChoice: undefined },
+    uid
+  );
 }
 
 export function sacrificeLandscape(state: GameState, uid: string, cardId: string): GameState {
@@ -911,21 +1015,18 @@ function endTurn(state: GameState): GameState {
     ? { p1TurnCount: state.p1TurnCount + 1 }
     : { p2TurnCount: state.p2TurnCount + 1 };
 
-  next = {
+  next = resetPriority({
     ...next,
     ...newTurnCount,
     currentTurn: nextUid,
     phase: 'replenish',
     combatStep: 'none',
     pendingDamageChoice: undefined,
-    stackPassedOnce: false,
-    stackPassPriority: undefined,
     turnNumber: next.turnNumber + 1,
     p1LandscapesThisTurn: state.player1 === nextUid ? 0 : next.p1LandscapesThisTurn,
     p2LandscapesThisTurn: state.player2 === nextUid ? 0 : next.p2LandscapesThisTurn,
-    priorityPlayer: nextUid,
     stack: []
-  };
+  }, nextUid);
 
   // Clear any lingering attacker/blocker state from both players to prevent
   // stale data from a previous combat round carrying over into the next turn.

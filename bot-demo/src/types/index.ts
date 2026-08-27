@@ -75,10 +75,22 @@ export interface CardInstance {
 export type GamePhase = 'replenish' | 'draw' | 'play1' | 'combat' | 'play2' | 'end';
 export type CombatStep = 'none' | 'pre' | 'attackers' | 'blocks' | 'pre-damage' | 'damage';
 
+/**
+ * One *priority window*: a single round of "each player may act, then pass".
+ *
+ * The window is identified by the stack it was opened over, so any change to the
+ * stack invalidates it and a late or duplicate pass cannot corrupt the gate. An
+ * empty `stackOrder` is a legitimate window over an empty stack — that is how the
+ * pre-damage combat gate works, using the same mechanism as the stack rather than a
+ * separate flag.
+ *
+ * See `priorityWindowMatches` / `recordPriorityPass` / `resetPriority` in
+ * `game/engine.ts`; nothing should construct or mutate this by hand.
+ */
 export interface StackPassPriorityState {
-  // Snapshot of the current stack order: stack entry id -> 1-based position.
+  // Snapshot of the stack this window was opened over: entry id -> 1-based position.
   stackOrder: Record<string, number>;
-  // Priority pass order for this stack snapshot: player uid -> 1-based pass order.
+  // Who has passed inside this window: player uid -> 1-based pass order.
   passOrder: Record<string, number>;
 }
 
@@ -115,11 +127,11 @@ export interface GameState {
   stackWarPlayer?: string;
   pendingRitualPopup?: string;
   pendingRitualTarget?: { ritualName: string; uid: string; igniteBoost?: number };
-  // Stack priority: true after the first player passes priority with cards on the stack.
-  // The stack resolves only when both players have passed in succession (stackPassedOnce is
-  // already true when the second player passes).
+  // True once at least one player has passed in the current priority window. This is
+  // a display/compatibility hint only — whether the window is closed is decided by
+  // `stackPassPriority.passOrder`, never by this flag.
   stackPassedOnce?: boolean;
-  // Structured stack-priority tracking for the current stack snapshot.
+  // The current priority window. Undefined means no window is open.
   stackPassPriority?: StackPassPriorityState;
   // Combat damage choice
   pendingDamageChoice?: boolean;
