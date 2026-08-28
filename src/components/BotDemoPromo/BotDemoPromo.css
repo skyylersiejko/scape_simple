@@ -1,20 +1,33 @@
 .BotDemoPromo {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
   margin: 0 0 1.5rem;
   text-align: center;
   box-sizing: border-box;
 }
 
+/* Platform marks, cropped from the pixel-art source artwork. `pixelated` keeps the
+   hard pixel edges crisp instead of blurring them when the browser scales down. */
+.BotDemoPromo_Icon {
+  width: auto;
+  height: 1.6em;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+
 .BotDemoPromo_Button {
+  align-items: center;
   background: rgba(255, 255, 0);
   border: 2px solid rgba(0, 0, 0, 0.0);
   color: #2d0f2d;
   cursor: pointer;
-  display: inline-block;
+  display: inline-flex;
   font-size: 0.7rem;
-  padding: 0.7rem 1rem;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 0.7rem 1.4rem;
   text-decoration: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -29,6 +42,45 @@
   outline-offset: 2px;
 }
 
+.BotDemoPromo_Downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.BotDemoPromo_Install {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(214, 195, 73, 0.5);
+  color: rgba(214, 195, 73);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.6rem;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.BotDemoPromo_Install:hover {
+  background: rgba(214, 195, 73, 0.1);
+  box-shadow: 0 0 0 1px rgba(214, 195, 73, 0.4);
+  transform: translateY(-1px);
+}
+
+.BotDemoPromo_Install:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.BotDemoPromo_Version {
+  font-size: 0.5rem;
+  opacity: 0.7;
+}
+
+/* Unchanged from before: the whole promo section is hidden on narrow screens. */
 @media (max-width: 768px) {
   .BotDemoPromo {
     display: none;
