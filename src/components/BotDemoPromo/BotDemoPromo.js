@@ -16,7 +16,7 @@ const DEFAULT_DEMO_URL = "/bot-demo/";
  *
  * When new installers are released, bump this one constant.
  */
-const INSTALLER_VERSION = "1.2.1";
+const INSTALLER_VERSION = "1.3.1";
 const RELEASE_BASE = `https://github.com/skyylersiejko/scape_simple/releases/download/v${INSTALLER_VERSION}`;
 const MAC_URL = `${RELEASE_BASE}/Scape-${INSTALLER_VERSION}-mac.dmg`;
 const WIN_URL = `${RELEASE_BASE}/Scape-Setup-${INSTALLER_VERSION}-win.exe`;
